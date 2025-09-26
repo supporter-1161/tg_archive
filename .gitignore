@@ -1,0 +1,21 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# Игнорируем все файлы внутри директорий (но не сами директории)
+avatars/*
+media/*
+output/*
+
+# Игнорируем директории полностью
+include/
+lib/
+__pycache__/
+bin/
+
+# Игнорируем симлинк
+lib64
+
+# Игнорируем конкретные файлы
+tg_archive.session
+pyvenv.cfg
+sqlite_history
+config.yaml
+tg_archive.db

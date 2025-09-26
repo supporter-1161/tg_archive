@@ -1,0 +1,16 @@
+telegram:
+  api_id: "0000000"
+  api_hash: "000000000000000"
+  session_name: "tg_archive"
+  group_id: -0000000000000
+
+storage:
+  database: "tg_archive.db"
+  media_dir: "media"
+  avatars_dir: "avatars"
+
+output:
+  site_title: "Архив группы TEST"
+  base_url: "https://support-archive.example.com"
+  timezone: "Europe/Moscow"
+  locale: "ru_RU" 
