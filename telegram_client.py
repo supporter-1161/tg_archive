@@ -130,6 +130,7 @@ class TelegramArchiver:
                 'first_name': 'Unknown',
                 'last_name': 'User',
             }
+    
 
     def message_to_dict(self, msg: Message, topic_id: Optional[int] = None) -> Dict[str, Any]:
         """Преобразует объект сообщения в словарь для сохранения."""
@@ -140,17 +141,19 @@ class TelegramArchiver:
                 'answers': [{'text': a.text, 'votes': a.voters} for a in msg.poll.poll.answers],
                 'total_voters': msg.poll.poll.total_voters
             })
+
         return {
             'telegram_id': msg.id,
             'topic_id': topic_id,
-            'user_id': msg.sender_id or 0,  # Обязательно
-            'text': msg.text,
+            'user_id': msg.sender_id or 0,
+            'text': msg.text or '',  # Даже если текста нет — сохраняем пустую строку
             'timestamp': msg.date.isoformat(),
             'reply_to': getattr(msg.reply_to, 'reply_to_msg_id', None) if msg.reply_to else None,
-            'media_type': None,
-            'media_path': None,
+            'media_type': None,  # Будет заполнено позже
+            'media_path': None,  # Будет заполнено позже
             'poll_data': poll_data
         }
+
 
     async def sync_topics_and_messages(self, db_path: str, media_dir: str, verbose: bool = False, topic_ids: list = None):
         """Синхронизирует темы и сообщения."""
