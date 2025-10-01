@@ -7,10 +7,8 @@ def init_db(db_path: str):
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
-    
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS topics (
             id INTEGER PRIMARY KEY,
@@ -22,7 +20,6 @@ def init_db(db_path: str):
             last_message_id INTEGER
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
@@ -36,10 +33,19 @@ def init_db(db_path: str):
             media_type TEXT CHECK(media_type IN ('photo', 'video', 'document', 'audio')),
             poll_data TEXT, -- JSON stored as TEXT
             deleted BOOLEAN DEFAULT FALSE,
+            file_extension TEXT,
             UNIQUE(telegram_id, topic_id)
         )
     """)
-
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS media_files (
+            id INTEGER PRIMARY KEY,
+            telegram_media_id INTEGER NOT NULL,
+            access_hash INTEGER NOT NULL,
+            file_path TEXT NOT NULL UNIQUE, -- Уникальный путь
+            UNIQUE(telegram_media_id, access_hash) -- Уникальная комбинация id и access_hash
+        )
+    """)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -51,15 +57,14 @@ def init_db(db_path: str):
             last_updated TIMESTAMP
         )
     """)
-
     # Индексы
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to)")
-
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_telegram_ids ON media_files(telegram_media_id, access_hash)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_path ON media_files(file_path)")
     conn.commit()
     conn.close()
-
 
 def get_db_connection(db_path: str):
     """Возвращает соединение с БД."""
@@ -129,13 +134,22 @@ def save_user(conn, user_data: Dict[str, Any]):
 
 
 def save_message(conn, msg_data: Dict[str, Any]):
-    """Сохраняет сообщение."""
+    """Сохраняет сообщение или обновляет, если уже существует."""
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT OR IGNORE INTO messages (
+        INSERT INTO messages (
             telegram_id, topic_id, user_id, text, timestamp,
-            reply_to, media_path, media_type, poll_data
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            reply_to, media_path, media_type, poll_data, file_extension -- <-- Добавили file_extension
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) -- <-- Добавили ?
+        ON CONFLICT(telegram_id, topic_id) DO UPDATE SET
+            user_id = excluded.user_id,
+            text = COALESCE(excluded.text, text),
+            timestamp = excluded.timestamp,
+            reply_to = excluded.reply_to,
+            media_path = COALESCE(excluded.media_path, media_path),
+            media_type = COALESCE(excluded.media_type, media_type),
+            poll_data = COALESCE(excluded.poll_data, poll_data),
+            file_extension = COALESCE(excluded.file_extension, file_extension) -- <-- Добавили file_extension
     """, (
         msg_data['telegram_id'],
         msg_data.get('topic_id'),
@@ -145,6 +159,26 @@ def save_message(conn, msg_data: Dict[str, Any]):
         msg_data.get('reply_to'),
         msg_data.get('media_path'),
         msg_data.get('media_type'),
-        msg_data.get('poll_data')  # JSON -> str
+        msg_data.get('poll_data'),  # JSON -> str
+        msg_data.get('file_extension') # <-- Новое значение
     ))
+    conn.commit()
+
+def get_file_path_by_media_info(conn, media_id: int, access_hash: int) -> Optional[str]:
+    """Возвращает путь к файлу, если он уже был скачан."""
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT file_path FROM media_files WHERE telegram_media_id = ? AND access_hash = ?",
+        (media_id, access_hash)
+    )
+    row = cursor.fetchone()
+    return row[0] if row else None
+
+def save_media_file_info(conn, media_id: int, access_hash: int, file_path: str):
+    """Сохраняет информацию о скачанном файле."""
+    cursor = conn.cursor()
+    cursor.execute("""
+        INSERT OR IGNORE INTO media_files (telegram_media_id, access_hash, file_path)
+        VALUES (?, ?, ?)
+    """, (media_id, access_hash, file_path))
     conn.commit()
