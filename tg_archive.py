@@ -3,7 +3,7 @@ import yaml
 from database import init_db
 from telegram_client import TelegramArchiver
 import asyncio
-import os # <-- Добавим импорт os
+import os # <-- Добавим импорт os для init
 
 def load_config(path):
     with open(path, 'r') as f:
@@ -33,30 +33,27 @@ def init(config):
 
     print("[+] Инициализация завершена")
 
-async def sync(config, verbose=False, topic_ids=None):
-    print("[*] Синхронизация...")
+
+async def sync(config, verbose=False, topic_ids=None, sync_direction='forward'): # <-- Добавлен sync_direction с значением по умолчанию
+    print(f"[*] Синхронизация (направление: {sync_direction})...")
     tg_config = config["telegram"]
     db_path = config["storage"]["database"]
-    media_dir = config["storage"]["media_dir"] # <-- Убедимся, что media_dir указан в config.yaml
+    media_dir = config["storage"]["media_dir"]
     archiver = TelegramArchiver(
         api_id=tg_config["api_id"],
         api_hash=tg_config["api_hash"],
         session_name=tg_config["session_name"],
-        group_id=tg_config["group_id"]
+        group_id=tg_config["group_id"],
+        sync_direction=sync_direction # <-- Передаём направление в TelegramArchiver
     )
     await archiver.start()
-    await archiver.sync_topics_and_messages(db_path, media_dir, verbose=verbose, topic_ids=topic_ids)
+    await archiver.sync_topics_and_messages(db_path, media_dir, verbose=verbose, topic_ids=topic_ids, sync_direction=sync_direction) # <-- Передаём направление в sync_topics_and_messages
     await archiver.close()
 
 def generate(config):
     print("[*] Генерация сайта...")
-    # TODO: Проверить и создать output_dir и avatars_dir, если нужно, или доверить это генератору
-    # storage_config = config["storage"]
-    # output_dir = storage_config.get("output_dir", "output")
-    # avatars_dir = storage_config.get("avatars_dir", "avatars")
-    # os.makedirs(output_dir, exist_ok=True)
-    # os.makedirs(avatars_dir, exist_ok=True)
-    pass # <-- Пока заглушка
+    # TODO
+    pass
 
 def main():
     parser = argparse.ArgumentParser(description="Архиватор Telegram-групп")
@@ -64,13 +61,17 @@ def main():
     parser.add_argument("--config", required=True)
     parser.add_argument("--verbose", action="store_true", help="Включить подробный лог")
     parser.add_argument("--topics", nargs='+', type=int, help="ID тем для синхронизации (если не указаны — все)")
+    # --- НОВЫЙ АРГУМЕНТ ---
+    parser.add_argument("--sync-direction", choices=["forward", "backward"], default="forward", help="Направление синхронизации: 'forward' (новые сообщения) или 'backward' (старые сообщения).")
+    # --- КОНЕЦ НОВОГО АРГУМЕНТА ---
     args = parser.parse_args()
     config = load_config(args.config)
 
     if args.command == "init":
-        init(config) # <-- Теперь init создаст и директории
+        init(config)
     elif args.command == "sync":
-        asyncio.run(sync(config, verbose=args.verbose, topic_ids=args.topics))
+        # Передаём значение аргумента sync_direction в функцию sync
+        asyncio.run(sync(config, verbose=args.verbose, topic_ids=args.topics, sync_direction=args.sync_direction))
     elif args.command == "generate":
         generate(config)
 
