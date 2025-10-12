@@ -1,0 +1,181 @@
+<!-- templates/topic.html.j2 -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ current_topic.title }} - {{ site_title }}</title>
+    <!-- Подключаем основные стили -->
+    <link rel="stylesheet" href="static/css/style.css">
+    <!-- Подключаем специфичные стили для страницы темы -->
+    <link rel="stylesheet" href="static/css/topic.css">
+</head>
+<body data-theme="{{ default_theme }}">
+    <header class="header">
+        <div class="header-title-desc"> <!-- Новый div для заголовка и описания -->
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <div class="controls"> <!-- Контролы справа -->
+            <span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
+        </div>
+        <!-- Зарезервированное место под будущую строку поиска -->
+        <!-- <input type="text" placeholder="Поиск..."> -->
+    </header>
+
+    {% if ticker_enabled %}
+    <div class="ticker">
+        <div class="ticker-content">
+            {% for text in ticker_texts %}
+                <span class="ticker-item">{{ text }}</span>
+                &nbsp; &nbsp; &nbsp;
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-content">
+        <aside class="sidebar">
+            <h3>Все Темы</h3>
+            <ul class="topic-list">
+                {% for topic in topics %}
+                <li>
+                    <a href="{% if topic.id == current_topic.id %}#{% else %}topic_{{ topic.id }}.html{% endif %}">
+                        {{ topic.icon_emoji | default('') }} {{ topic.title }}
+                        <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <h3>Полезные ссылки</h3>
+            <ul class="useful-links">
+                {% for link in useful_links %}
+                <li>
+                    <a href="{{ link.url }}" target="_blank">
+                        {{ link.icon | default('🔗') }} {{ link.name }}
+                        {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <div class="random-topic-placeholder">Случайная тема (заглушка)</div>
+        </aside>
+
+        <main class="content">
+            <div class="breadcrumb">
+                <a href="index.html">Главная</a> &raquo; {{ current_topic.title }}
+            </div>
+
+            <div class="topic-header">
+                <h2>{{ current_topic.icon_emoji | default('') }} {{ current_topic.title }}</h2>
+            </div>
+
+            <div class="info-panel">
+                <p>Всего сообщений: {{ current_topic.total_messages }} | Первое сообщение: {{ current_topic.first_message_time }} | Последнее: {{ current_topic.last_message_time }}</p>
+            </div>
+
+            <div class="order-label">
+                Показ: {% if show_order_label %}от новых к старым{% else %}от старых к новым{% endif %}
+            </div>
+
+            <div class="messages-list">
+                {% for message in messages %}
+                <div class="message-card">
+                    <div class="message-header">
+                        {% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
+                            <img src="{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
+                        {% else %}
+                            <!-- Используем иконку по умолчанию из конфига, если есть -->
+                            {% set default_avatar = config.get('ui', {}).get('default_avatar_path', '') %}
+                            {% if default_avatar %}
+                                <img src="{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
+                            {% else %}
+                                <!-- Заглушка, если нет ни аватарки, ни иконки по умолчанию -->
+                                <div class="message-author-icon">👤</div>
+                            {% endif %}
+                        {% endif %}
+                        <span class="message-author-name">
+                            {{ message.author_first_name }}{% if message.author_last_name %} {{ message.author_last_name }}{% endif %}{% if message.author_username %} (@{{ message.author_username }}){% endif %}
+                        </span>
+                        <span class="message-timestamp">{{ message.timestamp }}</span>
+                    </div>
+                    {% if message.media_path %}
+                        <div class="message-media">
+                            {% if message.media_type == 'photo' %}
+                                <a href="{{ message.media_path }}" target="_blank"><img src="{{ message.media_path }}" alt="Photo"></a>
+                            {% elif message.media_type == 'video' %}
+                                <video controls><source src="{{ message.media_path }}" type="video/mp4">Видео не поддерживается.</video>
+                            {% elif message.media_type == 'document' or message.media_type == 'audio' %}
+                                <a href="{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }} ({{ message.file_extension | upper }})</a>
+                            {% else %}
+                                <a href="{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }}</a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    {% if message.text %}
+                        <div class="message-text">{{ message.text | replace('\n', '<br>') | safe }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Пагинация -->
+            {% if total_pages > 1 %}
+            <div class="pagination">
+                {% if current_page > 1 %}
+                    <a href="
+                        {% if current_page - 1 == 1 %}
+                            topic_{{ current_topic.id }}.html
+                        {% else %}
+                            topic_{{ current_topic.id }}_page_{{ current_page - 1 }}.html
+                        {% endif %}
+                    ">&laquo; Назад</a>
+                {% endif %}
+
+                {% for page_num in page_links %}
+                    {% if page_num == current_page %}
+                        <span class="current">{{ page_num }}</span>
+                    {% else %}
+                        <a href="
+                            {% if page_num == 1 %}
+                                topic_{{ current_topic.id }}.html
+                            {% else %}
+                                topic_{{ current_topic.id }}_page_{{ page_num }}.html
+                            {% endif %}
+                        ">{{ page_num }}</a>
+                    {% endif %}
+                {% endfor %}
+
+                {% if current_page < total_pages %}
+                    <a href="topic_{{ current_topic.id }}_page_{{ current_page + 1 }}.html">Вперёд &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p>{{ site_title }} | Обновлено: {{ (now() if now else 'N/A') }} | Сообщений: {{ current_topic.total_messages }}</p>
+        <p>{{ footer_text }}</p>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+        }
+        document.addEventListener('DOMContentLoaded', function() {
+            const nowElement = document.querySelector('.footer p:first-child');
+            if (nowElement && nowElement.textContent.includes('N/A')) {
+                 const now = new Date().toISOString().split('T')[0];
+                 nowElement.innerHTML = nowElement.innerHTML.replace('N/A', now);
+            }
+        });
+    </script>
+</body>
+</html>

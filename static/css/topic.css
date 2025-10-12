@@ -1,0 +1,126 @@
+/* static/css/topic.css */
+
+/* --- CSS Переменные для тем (повторяются, но могут быть переопределены для страницы темы) --- */
+/* На случай, если нужно будет стилизовать страницу темы по-особому */
+:root {
+    /* Эти значения можно переопределить для страницы темы */
+    --message-bg: #f1f3f5; /* Цвет фона карточки сообщения */
+    --message-border: #e0e0e0; /* Цвет бордюра карточки */
+}
+[data-theme="dark"] {
+    --message-bg: #343a40; /* Цвет фона карточки сообщения в темной теме */
+    --message-border: #454d55; /* Цвет бордюра карточки в темной теме */
+}
+
+/* Специфичные стили для страницы темы (уже были в style.css, перенесены сюда) */
+.breadcrumb {
+    margin-bottom: 1rem;
+    font-size: 0.9em;
+    color: gray;
+}
+
+.topic-header {
+    margin-bottom: 1rem;
+}
+
+.topic-header h2 {
+    font-size: 1.8em;
+    margin: 0;
+}
+
+.info-panel {
+    background-color: var(--header-bg);
+    padding: 0.5rem;
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.9em;
+}
+
+.order-label {
+    margin-bottom: 1rem;
+    font-style: italic;
+}
+
+.message-card {
+    background-color: var(--message-bg);
+    border: 1px solid var(--message-border);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.message-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem;
+}
+
+.message-author-icon {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 0.5rem;
+    /* Пока используем placeholder, если нет аватарки */
+    background-color: #ccc;
+}
+
+.message-author-name {
+    font-weight: bold;
+}
+
+.message-timestamp {
+    margin-left: auto; /* Push timestamp to the right */
+    font-size: 0.8em;
+    color: gray;
+}
+
+.message-text {
+    margin: 0.5rem 0;
+}
+
+.message-media {
+    margin-top: 0.5rem;
+}
+
+.message-media img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+}
+
+.message-media a {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: #e9ecef;
+    border-radius: 4px;
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+.message-media a:hover {
+    background-color: #dee2e6;
+}
+
+.pagination {
+    margin-top: 1rem;
+    text-align: center;
+}
+
+.pagination a, .pagination span {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    margin: 0 0.1rem;
+    text-decoration: none;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+}
+
+.pagination a:hover {
+    background-color: var(--header-bg);
+}
+
+.pagination .current {
+    background-color: var(--accent-color);
+    color: white;
+}

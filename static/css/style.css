@@ -1,0 +1,213 @@
+/* static/css/style.css */
+
+/* --- CSS Переменные для тем --- */
+:root {
+    /* Светлая тема по умолчанию */
+    --bg-color: #ffffff; /* Цвет фона страницы */
+    --text-color: #333333; /* Цвет основного текста */
+    --header-bg: #f8f9fa; /* Цвет фона шапки */
+    --sidebar-bg: #e9ecef; /* Цвет фона бокового меню */
+    --footer-bg: #f8f9fa; /* Цвет фона подвала */
+    --border-color: #dee2e6; /* Цвет бордюров */
+    --accent-color: #007bff; /* Акцентный цвет (например, для ссылок, кнопок) */
+    --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
+    --ticker-text: #ffffff; /* Цвет текста бегущей строки */
+}
+[data-theme="dark"] {
+    /* Тёмная тема */
+    --bg-color: #212529; /* Цвет фона страницы */
+    --text-color: #f8f9fa; /* Цвет основного текста */
+    --header-bg: #343a40; /* Цвет фона шапки */
+    --sidebar-bg: #495057; /* Цвет фона бокового меню */
+    --footer-bg: #343a40; /* Цвет фона подвала */
+    --border-color: #6c757d; /* Цвет бордюров */
+    --accent-color: #0d6efd; /* Акцентный цвет */
+    --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
+    --ticker-text: #ffffff; /* Цвет текста бегущей строки */
+}
+
+/* --- Базовые стили --- */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    transition: background-color 0.3s, color 0.3s;
+}
+
+.header {
+    background-color: var(--header-bg);
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    /* --- ИСПОЛЬЗУЕМ FLEXBOX ДЛЯ ВЫРАВНИВАНИЯ ЭЛЕМЕНТОВ В ШАПКЕ --- */
+    display: flex; /* Располагаем дочерние элементы в строку */
+    justify-content: space-between; /* Распределяем пространство: контент слева, контролы справа */
+    align-items: flex-start; /* Выравниваем по вертикали по верхнему краю (baseline или flex-start) */
+    /* --- КОНЕЦ FLEXBOX --- */
+}
+
+/* Новый стиль для блока с заголовком и описанием */
+.header-title-desc {
+    /* display: flex; - убираем, чтобы h1 и p были в вертикальном потоке */
+    /* align-self: center; - убираем, так как теперь align-items: flex-start для .header */
+    /* margin-right: auto; - не нужно, так как justify-content: space-between уже вынесло controls направо */
+    /* text-align: left; - по умолчанию */
+    /* margin-right: 1rem; - добавим отступ справа, чтобы был зазор до .controls */
+    margin-right: 1rem;
+}
+
+.header h1 {
+    margin: 0;
+    /* align-self: center; - не нужно, так как теперь .header выравнивает по верхнему краю */
+}
+
+.header p {
+    margin: 0.25rem 0 0 0; /* Отступ сверху, чтобы было расстояние от h1 */
+    /* align-self: center; - не нужно */
+}
+
+/* .header .controls { float: right; } - Убираем float, так как теперь используем flexbox */
+
+/* Стили для блока с контролами (переключатель темы и, возможно, строка поиска) */
+.header .controls {
+    /* display: flex; - можно добавить, если будет несколько элементов управления */
+    /* align-items: center; - если несколько элементов */
+    /* margin-left: auto; - не нужно, так как justify-content: space-between уже вынесло controls направо */
+    /* align-self: center; - не нужно, так как теперь align-items: flex-start для .header */
+    /* Убедимся, что controls выравнен по верхнему краю h1 */
+    align-self: flex-start; /* Это выровняет .controls по верхнему краю .header, где находится h1 */
+}
+
+.ticker {
+    background-color: var(--ticker-bg);
+    color: var(--ticker-text);
+    /* Убираем padding */
+    padding: 0;
+    /* Устанавливаем высоту строки */
+    line-height: 1.0;
+    /* Жёстко ограничиваем высоту */
+    height: 1.5em; /* Пример высоты */
+    /* Обрезаем всё, что выходит за границы */
+    overflow: hidden;
+    /* Убедимся, что ширина 100% */
+    /* width: 100%; (по умолчанию) */
+    /* Убираем width: 100vw; */
+    /* width: 100vw; */
+}
+
+.ticker-content {
+    /* display: inline-block; - убираем */
+    /* padding-left: 100%; - убираем */
+    /* Новая анимация для .ticker-content */
+    /* Анимация будет двигать весь блок .ticker-content */
+    animation: ticker-scroll 30s linear infinite; /* Скорость можно регулировать в конфиге */
+    /* --- НОВОЕ: Используем flex для размещения .ticker-item в строку --- */
+    display: flex; /* Располагаем дочерние элементы в строку */
+    align-items: center; /* Выравниваем по вертикали по центру */
+    /* white-space: nowrap; - не обязательно при display: flex, но можно добавить для уверенности */
+    white-space: nowrap;
+    /* --- КОНЕЦ НОВОГО --- */
+}
+
+/* Новая анимация: движение слева направо */
+@keyframes ticker-scroll {
+    0% { transform: translateX(100%); } /* Начинаем справа от видимой области */
+    100% { transform: translateX(-100%); } /* Уходим полностью влево */
+}
+
+/* Стили для отдельных элементов текста */
+.ticker-item {
+    /* white-space: nowrap; - убираем, так как теперь nowrap на .ticker-content */
+    /* display: inline-block; - добавляем, чтобы элементы были строчно-блочными внутри flex */
+    display: inline-block;
+    /* Можно добавить отступы между элементами, если не добавлять &nbsp; в шаблоне */
+    /* margin-right: 50px; */
+    /* Убираем любые отступы или бордюры, которые могут повлиять на размещение */
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+.main-content {
+    display: flex;
+    min-height: calc(100vh - 150px); /* Вычесть примерную высоту header и footer */
+}
+
+.sidebar {
+    width: 250px;
+    background-color: var(--sidebar-bg);
+    padding: 1rem;
+    border-right: 1px solid var(--border-color);
+}
+
+.content {
+    flex: 1;
+    padding: 1rem;
+}
+
+.footer {
+    background-color: var(--footer-bg);
+    padding: 1rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.theme-toggle {
+    cursor: pointer;
+    /* Можно добавить немного отступа для красоты */
+    /* padding: 0.2rem; */
+    /* font-size: 1.2em; - если хочется увеличить значки */
+}
+
+.topic-list, .useful-links {
+    list-style: none;
+    padding: 0;
+}
+
+.topic-list li, .useful-links li {
+    margin-bottom: 0.5rem;
+    padding: 0.25rem;
+}
+
+.topic-list a, .useful-links a {
+    text-decoration: none;
+    color: var(--text-color);
+}
+
+.topic-list a:hover, .useful-links a:hover {
+    text-decoration: underline;
+}
+
+.random-topic-btn {
+    margin-top: 1rem;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-color);
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.random-topic-btn:hover {
+    opacity: 0.8;
+}
+
+.stats-block {
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background-color: var(--header-bg);
+    border-radius: 4px;
+}
+
+/* Заглушка для случайной темы */
+.random-topic-placeholder {
+    display: block;
+    margin-top: 1rem;
+    padding: 0.5rem;
+    background-color: var(--accent-color);
+    color: white;
+    text-align: center;
+    cursor: default; /* Стиль курсора, так как не кликабельно */
+    opacity: 0.5; /* Slightly faded to indicate it's a placeholder */
+}

@@ -1,0 +1,104 @@
+<!-- templates/index.html.j2 -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site_title }}</title>
+    <!-- Подключаем основные стили -->
+    <link rel="stylesheet" href="static/css/style.css">
+</head>
+<body data-theme="{{ default_theme }}">
+    <header class="header">
+        <div class="header-title-desc"> <!-- Новый div для заголовка и описания -->
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <div class="controls"> <!-- Контролы справа -->
+            <!-- Переключатель темы -->
+            <span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
+        </div>
+        <!-- Зарезервированное место под будущую строку поиска -->
+        <!-- <input type="text" placeholder="Поиск..."> -->
+    </header>
+
+    {% if ticker_enabled %}
+    <div class="ticker">
+        <div class="ticker-content">
+            {% for text in ticker_texts %}
+                <span class="ticker-item">{{ text }}</span>
+                &nbsp; &nbsp; &nbsp;
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <div class="main-content">
+        <aside class="sidebar">
+            <h3>Все Темы</h3>
+            <ul class="topic-list">
+                {% for topic in topics %}
+                <li>
+                    <a href="topic_{{ topic.id }}.html">
+                        {{ topic.icon_emoji | default('') }} {{ topic.title }}
+                        <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <h3>Полезные ссылки</h3>
+            <ul class="useful-links">
+                {% for link in useful_links %}
+                <li>
+                    <a href="{{ link.url }}" target="_blank">
+                        {{ link.icon | default('🔗') }} {{ link.name }}
+                        {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+
+            <!-- Заглушка для кнопки "Случайная тема" -->
+            <div class="random-topic-placeholder">Случайная тема (заглушка)</div>
+            <!-- Реализация требует JS или динамики, оставляем как есть -->
+        </aside>
+
+        <main class="content">
+            <div class="welcome-block">
+                <h2>{{ site_title }}</h2>
+                <p>{{ site_description }}</p>
+            </div>
+            <div class="stats-block">
+                <p><strong>Статистика:</strong></p>
+                <p>Всего сообщений: {{ total_messages }}</p>
+                <p>Всего тем: {{ total_topics }}</p>
+                <p>Самая активная тема: {{ most_active_topic }}</p>
+            </div>
+        </main>
+    </div>
+
+    <footer class="footer">
+        <p>{{ site_title }} | Обновлено: {{ (now() if now else 'N/A') }} | Сообщений: {{ total_messages }}</p>
+        <p>{{ footer_text }}</p>
+    </footer>
+
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+            // Не сохраняем тему между сессиями
+        }
+        // Попытка получить текущую дату для подвала (ограничено в Jinja2, но можно в JS)
+        document.addEventListener('DOMContentLoaded', function() {
+            const nowElement = document.querySelector('.footer p:first-child');
+            if (nowElement && nowElement.textContent.includes('N/A')) {
+                 const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+                 nowElement.innerHTML = nowElement.innerHTML.replace('N/A', now);
+            }
+        });
+    </script>
+</body>
+</html>

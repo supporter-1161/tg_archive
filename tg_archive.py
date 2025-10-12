@@ -1,9 +1,10 @@
+from web_generator import generate_website
 import argparse
 import yaml
 from database import init_db
 from telegram_client import TelegramArchiver
 import asyncio
-import os # <-- Добавим импорт os для init
+import os 
 
 def load_config(path):
     with open(path, 'r') as f:
@@ -52,7 +53,7 @@ async def sync(config, verbose=False, topic_ids=None, sync_direction='forward'):
 
 def generate(config):
     print("[*] Генерация сайта...")
-    # TODO
+    generate_website(config)
     pass
 
 def main():
@@ -61,9 +62,9 @@ def main():
     parser.add_argument("--config", required=True)
     parser.add_argument("--verbose", action="store_true", help="Включить подробный лог")
     parser.add_argument("--topics", nargs='+', type=int, help="ID тем для синхронизации (если не указаны — все)")
-    # --- НОВЫЙ АРГУМЕНТ ---
+
     parser.add_argument("--sync-direction", choices=["forward", "backward"], default="forward", help="Направление синхронизации: 'forward' (новые сообщения) или 'backward' (старые сообщения).")
-    # --- КОНЕЦ НОВОГО АРГУМЕНТА ---
+    
     args = parser.parse_args()
     config = load_config(args.config)
 
