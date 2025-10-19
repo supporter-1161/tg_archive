@@ -10,11 +10,14 @@
     --footer-bg: #f8f9fa; /* Цвет фона подвала */
     --border-color: #dee2e6; /* Цвет бордюров */
     --accent-color: #007bff; /* Акцентный цвет (например, для ссылок, кнопок) */
+    --link-color: #007bff; /* Цвет обычной ссылки */
+    --link-hover-color: #0056b3; /* Цвет ссылки при наведении */
     --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
     --ticker-text: #ffffff; /* Цвет текста бегущей строки */
     --welcome-bg: #f1f3f5; /* Цвет фона приветственного блока (светлая тема) */
     --stats-bg: #e9ecef; /* Цвет фона блока статистики (светлая тема) */
 }
+
 [data-theme="dark"] {
     /* Тёмная тема */
     --bg-color: #212529; /* Цвет фона страницы */
@@ -25,6 +28,8 @@
     --footer-bg: #343a40; /* Цвет фона подвала */
     --border-color: #6c757d; /* Цвет бордюров */
     --accent-color: #0d6efd; /* Акцентный цвет */
+    --link-color: #4dabf7; /* Цвет обычной ссылки в тёмной теме */
+    --link-hover-color: #339af0; /* Цвет ссылки при наведении в тёмной теме */
     --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
     --ticker-text: #ffffff; /* Цвет текста бегущей строки */
     --welcome-bg: #343a40; /* Цвет фона приветственного блока (тёмная тема) */
@@ -41,6 +46,18 @@ body {
     transition: background-color 0.3s, color 0.3s;
 }
 
+/* --- Стили для ссылок --- */
+a {
+    color: var(--link-color);
+    text-decoration: none; /* Убираем подчёркивание по умолчанию */
+}
+
+a:hover {
+    color: var(--link-hover-color);
+    text-decoration: underline; /* Возвращаем подчёркивание при наведении */
+}
+
+/* --- Остальные стили остаются без изменений --- */
 .header {
     background-color: var(--header-bg);
     padding: 1rem;
@@ -156,7 +173,6 @@ body {
 }
 
 /* --- КОНЕЦ НОВЫХ СТИЛЕЙ --- */
-
 .content {
     flex: 1;
     padding: 1rem;
@@ -185,13 +201,10 @@ body {
     padding: 0.25rem;
 }
 
-.topic-list a, .useful-links a {
-    text-decoration: none;
-    color: var(--text-color);
-}
-
+/* topic-list a, useful-links a - теперь подчиняются общему правилу для a */
 .topic-list a:hover, .useful-links a:hover {
-    text-decoration: underline;
+    /* text-decoration: underline; - Теперь это делает общее правило для a:hover */
+    /* Цвет при наведении уже задан в переменной --link-hover-color */
 }
 
 .random-topic-btn {
@@ -232,3 +245,6 @@ body {
 .stats-block p {
     margin: 0.25rem 0; /* Отступы между параграфами */
 }
+
+/* --- УБИРАЕМ СТИЛИ ССЫЛОК ИЗ topic.css --- */
+/* .topic-header a, .info-panel a, .order-label a, .message-card a, .message-text a, .message-media a - подчиняются общему правилу для a */

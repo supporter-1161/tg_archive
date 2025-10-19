@@ -5,22 +5,18 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ current_topic.title }} - {{ site_title }}</title>
-    <!-- Подключаем основные стили -->
     <link rel="stylesheet" href="static/css/style.css">
-    <!-- Подключаем специфичные стили для страницы темы -->
     <link rel="stylesheet" href="static/css/topic.css">
 </head>
 <body data-theme="{{ default_theme }}">
     <header class="header">
-        <div class="header-title-desc"> <!-- Новый div для заголовка и описания -->
+        <div class="header-title-desc">
             <h1>{{ site_title }}</h1>
             <p>{{ site_description }}</p>
         </div>
-        <div class="controls"> <!-- Контролы справа -->
+        <div class="controls">
             <span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
         </div>
-        <!-- Зарезервированное место под будущую строку поиска -->
-        <!-- <input type="text" placeholder="Поиск..."> -->
     </header>
     {% if ticker_enabled %}
     <div class="ticker">
@@ -34,13 +30,12 @@
     {% endif %}
     <div class="main-content">
         <aside class="sidebar">
-            <!-- Секция "Все Темы" -->
             <div class="sidebar-section">
                 <h3>Все Темы</h3>
                 <ul class="topic-list">
                     {% for topic in topics %}
                     <li>
-                        <a href="{% if topic.id == current_topic.id %}#{% else %}topic_{{ topic.id }}.html{% endif %}">
+                        <a href="{% if topic.id == current_topic.id %}#{% else %}topic_{{ topic.id }}_page_1.html{% endif %}">
                             {{ topic.icon_emoji | default('') }} {{ topic.title }}
                             <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
                         </a>
@@ -48,8 +43,6 @@
                     {% endfor %}
                 </ul>
             </div>
-
-            <!-- Секция "Полезные Ссылки" -->
             <div class="sidebar-section">
                 <h3>Полезные ссылки</h3>
                 <ul class="useful-links">
@@ -63,10 +56,6 @@
                     {% endfor %}
                 </ul>
             </div>
-
-            <!-- Заглушка для кнопки "Случайная тема" (остаётся вне секций, если нужно) -->
-            <!-- <div class="random-topic-placeholder">Случайная тема (заглушка)</div> -->
-
         </aside>
         <main class="content">
             <div class="breadcrumb">
@@ -81,6 +70,26 @@
             <div class="order-label">
                 Показ: {% if show_order_label %}от новых к старым{% else %}от старых к новым{% endif %}
             </div>
+
+            <!-- Верхняя пагинация -->
+            {% if total_pages > 1 and config.ui.get('show_top_pagination', false) %}
+            <div class="pagination top-pagination">
+                {% if current_page > 1 %}
+                    <a href="topic_{{ current_topic.id }}_page_{{ current_page - 1 }}.html">&laquo; Назад</a>
+                {% endif %}
+                {% for page_num in page_links %}
+                    {% if page_num == current_page %}
+                        <span class="current">{{ page_num }}</span>
+                    {% else %}
+                        <a href="topic_{{ current_topic.id }}_page_{{ page_num }}.html">{{ page_num }}</a>
+                    {% endif %}
+                {% endfor %}
+                {% if current_page < total_pages %}
+                    <a href="topic_{{ current_topic.id }}_page_{{ current_page + 1 }}.html">Вперёд &raquo;</a>
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="messages-list">
                 {% for message in messages %}
                 <div class="message-card">
@@ -88,12 +97,10 @@
                         {% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
                             <img src="{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
                         {% else %}
-                            <!-- Используем иконку по умолчанию из конфига, если есть -->
                             {% set default_avatar = config.get('ui', {}).get('default_avatar_path', '') %}
                             {% if default_avatar %}
                                 <img src="{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
                             {% else %}
-                                <!-- Заглушка, если нет ни аватарки, ни иконки по умолчанию -->
                                 <div class="message-author-icon">👤</div>
                             {% endif %}
                         {% endif %}
@@ -116,35 +123,23 @@
                         </div>
                     {% endif %}
                     {% if message.text %}
-                        <div class="message-text">{{ message.text | replace('
-', '<br>') | safe }}</div>
+                        <div class="message-text">{{ message.text | replace('\n', '<br>') | safe }}</div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
-            <!-- Пагинация -->
+
+            <!-- Нижняя пагинация -->
             {% if total_pages > 1 %}
             <div class="pagination">
                 {% if current_page > 1 %}
-                    <a href="
-                        {% if current_page - 1 == 1 %}
-                            topic_{{ current_topic.id }}.html
-                        {% else %}
-                            topic_{{ current_topic.id }}_page_{{ current_page - 1 }}.html
-                        {% endif %}
-                    ">&laquo; Назад</a>
+                    <a href="topic_{{ current_topic.id }}_page_{{ current_page - 1 }}.html">&laquo; Назад</a>
                 {% endif %}
                 {% for page_num in page_links %}
                     {% if page_num == current_page %}
                         <span class="current">{{ page_num }}</span>
                     {% else %}
-                        <a href="
-                            {% if page_num == 1 %}
-                                topic_{{ current_topic.id }}.html
-                            {% else %}
-                                topic_{{ current_topic.id }}_page_{{ page_num }}.html
-                            {% endif %}
-                        ">{{ page_num }}</a>
+                        <a href="topic_{{ current_topic.id }}_page_{{ page_num }}.html">{{ page_num }}</a>
                     {% endif %}
                 {% endfor %}
                 {% if current_page < total_pages %}

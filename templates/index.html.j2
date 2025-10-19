@@ -39,7 +39,7 @@
                 <ul class="topic-list">
                     {% for topic in topics %}
                     <li>
-                        <a href="topic_{{ topic.id }}.html">
+                        <a href="{{ topic.first_page_filename }}"> <!-- Используем новое поле -->
                             {{ topic.icon_emoji | default('') }} {{ topic.title }}
                             <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
                         </a>
@@ -47,7 +47,6 @@
                     {% endfor %}
                 </ul>
             </div>
-
             <!-- Секция "Полезные Ссылки" -->
             <div class="sidebar-section">
                 <h3>Полезные ссылки</h3>
@@ -62,18 +61,16 @@
                     {% endfor %}
                 </ul>
             </div>
-
             <!-- Заглушка для кнопки "Случайная тема" (остаётся вне секций, если нужно) -->
             <!-- <div class="random-topic-placeholder">Случайная тема (заглушка)</div> -->
-
         </aside>
         <main class="content">
             {% if config.site.welcome_text %}
             <div class="welcome-block">
-                {{ config.site.welcome_text | replace('\n', '<br>') | safe }}
+                {{ config.site.welcome_text | replace('
+', '<br>') | safe }}
             </div>
             {% endif %}
-
             <div class="stats-block">
                 <h3>Статистика архива</h3> <!-- Добавим заголовок для ясности -->
                 <p>Всего сообщений: {{ total_messages }}</p>
