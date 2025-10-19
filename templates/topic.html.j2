@@ -22,7 +22,6 @@
         <!-- Зарезервированное место под будущую строку поиска -->
         <!-- <input type="text" placeholder="Поиск..."> -->
     </header>
-
     {% if ticker_enabled %}
     <div class="ticker">
         <div class="ticker-content">
@@ -33,53 +32,55 @@
         </div>
     </div>
     {% endif %}
-
     <div class="main-content">
         <aside class="sidebar">
-            <h3>Все Темы</h3>
-            <ul class="topic-list">
-                {% for topic in topics %}
-                <li>
-                    <a href="{% if topic.id == current_topic.id %}#{% else %}topic_{{ topic.id }}.html{% endif %}">
-                        {{ topic.icon_emoji | default('') }} {{ topic.title }}
-                        <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+            <!-- Секция "Все Темы" -->
+            <div class="sidebar-section">
+                <h3>Все Темы</h3>
+                <ul class="topic-list">
+                    {% for topic in topics %}
+                    <li>
+                        <a href="{% if topic.id == current_topic.id %}#{% else %}topic_{{ topic.id }}.html{% endif %}">
+                            {{ topic.icon_emoji | default('') }} {{ topic.title }}
+                            <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-            <h3>Полезные ссылки</h3>
-            <ul class="useful-links">
-                {% for link in useful_links %}
-                <li>
-                    <a href="{{ link.url }}" target="_blank">
-                        {{ link.icon | default('🔗') }} {{ link.name }}
-                        {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
-                    </a>
-                </li>
-                {% endfor %}
-            </ul>
+            <!-- Секция "Полезные Ссылки" -->
+            <div class="sidebar-section">
+                <h3>Полезные ссылки</h3>
+                <ul class="useful-links">
+                    {% for link in useful_links %}
+                    <li>
+                        <a href="{{ link.url }}" target="_blank">
+                            {{ link.icon | default('🔗') }} {{ link.name }}
+                            {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
 
-            <div class="random-topic-placeholder">Случайная тема (заглушка)</div>
+            <!-- Заглушка для кнопки "Случайная тема" (остаётся вне секций, если нужно) -->
+            <!-- <div class="random-topic-placeholder">Случайная тема (заглушка)</div> -->
+
         </aside>
-
         <main class="content">
             <div class="breadcrumb">
                 <a href="index.html">Главная</a> &raquo; {{ current_topic.title }}
             </div>
-
             <div class="topic-header">
                 <h2>{{ current_topic.icon_emoji | default('') }} {{ current_topic.title }}</h2>
             </div>
-
             <div class="info-panel">
                 <p>Всего сообщений: {{ current_topic.total_messages }} | Первое сообщение: {{ current_topic.first_message_time }} | Последнее: {{ current_topic.last_message_time }}</p>
             </div>
-
             <div class="order-label">
                 Показ: {% if show_order_label %}от новых к старым{% else %}от старых к новым{% endif %}
             </div>
-
             <div class="messages-list">
                 {% for message in messages %}
                 <div class="message-card">
@@ -115,12 +116,12 @@
                         </div>
                     {% endif %}
                     {% if message.text %}
-                        <div class="message-text">{{ message.text | replace('\n', '<br>') | safe }}</div>
+                        <div class="message-text">{{ message.text | replace('
+', '<br>') | safe }}</div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
-
             <!-- Пагинация -->
             {% if total_pages > 1 %}
             <div class="pagination">
@@ -133,7 +134,6 @@
                         {% endif %}
                     ">&laquo; Назад</a>
                 {% endif %}
-
                 {% for page_num in page_links %}
                     {% if page_num == current_page %}
                         <span class="current">{{ page_num }}</span>
@@ -147,21 +147,17 @@
                         ">{{ page_num }}</a>
                     {% endif %}
                 {% endfor %}
-
                 {% if current_page < total_pages %}
                     <a href="topic_{{ current_topic.id }}_page_{{ current_page + 1 }}.html">Вперёд &raquo;</a>
                 {% endif %}
             </div>
             {% endif %}
-
         </main>
     </div>
-
     <footer class="footer">
         <p>{{ site_title }} | Обновлено: {{ (now() if now else 'N/A') }} | Сообщений: {{ current_topic.total_messages }}</p>
         <p>{{ footer_text }}</p>
     </footer>
-
     <script>
         function toggleTheme() {
             const body = document.body;

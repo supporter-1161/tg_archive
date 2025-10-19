@@ -50,10 +50,13 @@ class TelegramArchiver:
         ))
         topics = []
         for topic in result.topics:
+            print(f"[DEBUG] Topic ID: {topic.id}, Title: '{topic.title}', Icon Emoji Attr: {hasattr(topic, 'icon_emoji')}, Icon Emoji Value: {getattr(topic, 'icon_emoji', 'ATTR_NOT_FOUND')}, Type: {type(getattr(topic, 'icon_emoji', 'ATTR_NOT_FOUND'))}")
+
             topics.append({
                 'telegram_id': topic.id,
                 'title': topic.title,
-                'icon_emoji': topic.icon_emoji if hasattr(topic, 'icon_emoji') else None,
+                #'icon_emoji': topic.icon_emoji if hasattr(topic, 'icon_emoji') else None,
+                'icon_emoji': getattr(topic, 'icon_emoji', None), # <-- Новая строка: getattr безопасно возвращает значение или None
                 'is_closed': getattr(topic, 'closed', False),
                 'created_at': getattr(topic, 'date', None)
             })

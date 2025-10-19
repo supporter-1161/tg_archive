@@ -1,5 +1,4 @@
 /* static/css/style.css */
-
 /* --- CSS Переменные для тем --- */
 :root {
     /* Светлая тема по умолчанию */
@@ -7,11 +6,14 @@
     --text-color: #333333; /* Цвет основного текста */
     --header-bg: #f8f9fa; /* Цвет фона шапки */
     --sidebar-bg: #e9ecef; /* Цвет фона бокового меню */
+    --sidebar-section-bg: #dee2e6; /* Цвет фона отдельных секций в боковом меню (светлая тема) */
     --footer-bg: #f8f9fa; /* Цвет фона подвала */
     --border-color: #dee2e6; /* Цвет бордюров */
     --accent-color: #007bff; /* Акцентный цвет (например, для ссылок, кнопок) */
     --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
     --ticker-text: #ffffff; /* Цвет текста бегущей строки */
+    --welcome-bg: #f1f3f5; /* Цвет фона приветственного блока (светлая тема) */
+    --stats-bg: #e9ecef; /* Цвет фона блока статистики (светлая тема) */
 }
 [data-theme="dark"] {
     /* Тёмная тема */
@@ -19,11 +21,14 @@
     --text-color: #f8f9fa; /* Цвет основного текста */
     --header-bg: #343a40; /* Цвет фона шапки */
     --sidebar-bg: #495057; /* Цвет фона бокового меню */
+    --sidebar-section-bg: #3d444b; /* Цвет фона отдельных секций в боковом меню (тёмная тема) */
     --footer-bg: #343a40; /* Цвет фона подвала */
     --border-color: #6c757d; /* Цвет бордюров */
     --accent-color: #0d6efd; /* Акцентный цвет */
     --ticker-bg: var(--accent-color); /* Цвет фона бегущей строки */
     --ticker-text: #ffffff; /* Цвет текста бегущей строки */
+    --welcome-bg: #343a40; /* Цвет фона приветственного блока (тёмная тема) */
+    --stats-bg: #343a40; /* Цвет фона блока статистики (тёмная тема) */
 }
 
 /* --- Базовые стили --- */
@@ -49,33 +54,18 @@ body {
 
 /* Новый стиль для блока с заголовком и описанием */
 .header-title-desc {
-    /* display: flex; - убираем, чтобы h1 и p были в вертикальном потоке */
-    /* align-self: center; - убираем, так как теперь align-items: flex-start для .header */
-    /* margin-right: auto; - не нужно, так как justify-content: space-between уже вынесло controls направо */
-    /* text-align: left; - по умолчанию */
-    /* margin-right: 1rem; - добавим отступ справа, чтобы был зазор до .controls */
     margin-right: 1rem;
 }
 
 .header h1 {
     margin: 0;
-    /* align-self: center; - не нужно, так как теперь .header выравнивает по верхнему краю */
 }
 
 .header p {
     margin: 0.25rem 0 0 0; /* Отступ сверху, чтобы было расстояние от h1 */
-    /* align-self: center; - не нужно */
 }
 
-/* .header .controls { float: right; } - Убираем float, так как теперь используем flexbox */
-
-/* Стили для блока с контролами (переключатель темы и, возможно, строка поиска) */
 .header .controls {
-    /* display: flex; - можно добавить, если будет несколько элементов управления */
-    /* align-items: center; - если несколько элементов */
-    /* margin-left: auto; - не нужно, так как justify-content: space-between уже вынесло controls направо */
-    /* align-self: center; - не нужно, так как теперь align-items: flex-start для .header */
-    /* Убедимся, что controls выравнен по верхнему краю h1 */
     align-self: flex-start; /* Это выровняет .controls по верхнему краю .header, где находится h1 */
 }
 
@@ -83,30 +73,35 @@ body {
     background-color: var(--ticker-bg);
     color: var(--ticker-text);
     /* Убираем padding */
-    padding: 0;
+    /* padding: 0; - УБРАЛИ */
     /* Устанавливаем высоту строки */
-    line-height: 1.0;
-    /* Жёстко ограничиваем высоту */
+    /* line-height: 1.0; - УБРАЛИ */
+    /* Устанавливаем фиксированную высоту */
     height: 1.5em; /* Пример высоты */
     /* Обрезаем всё, что выходит за границы */
     overflow: hidden;
     /* Убедимся, что ширина 100% */
-    /* width: 100%; (по умолчанию) */
-    /* Убираем width: 100vw; */
-    /* width: 100vw; */
+    width: 100%;
+    /* --- НОВОЕ: Используем flexbox для центрирования по вертикали --- */
+    display: flex; /* Делаем .ticker flex-контейнером */
+    align-items: center; /* Центрируем содержимое по вертикали */
+    /* --- КОНЕЦ НОВОГО --- */
 }
 
 .ticker-content {
-    /* display: inline-block; - убираем */
-    /* padding-left: 100%; - убираем */
+    /* Убираем display: flex, так как теперь .ticker сам центрирует */
+    /* display: flex; - УБРАЛИ */
+    /* align-items: center; - УБРАЛИ */
+    /* white-space: nowrap; - УБРАЛИ */
     /* Новая анимация для .ticker-content */
-    /* Анимация будет двигать весь блок .ticker-content */
     animation: ticker-scroll 30s linear infinite; /* Скорость можно регулировать в конфиге */
-    /* --- НОВОЕ: Используем flex для размещения .ticker-item в строку --- */
-    display: flex; /* Располагаем дочерние элементы в строку */
-    align-items: center; /* Выравниваем по вертикали по центру */
-    /* white-space: nowrap; - не обязательно при display: flex, но можно добавить для уверенности */
-    white-space: nowrap;
+    /* Убираем white-space nowrap, так как теперь .ticker сам управляет переполнением */
+    /* white-space: nowrap; - УБРАЛИ */
+    /* Убираем margin и padding, которые могут повлиять на выравнивание */
+    margin: 0;
+    padding: 0;
+    /* --- НОВОЕ: Добавляем display: inline-block, чтобы анимация translateX работала правильно --- */
+    display: inline-block;
     /* --- КОНЕЦ НОВОГО --- */
 }
 
@@ -118,15 +113,14 @@ body {
 
 /* Стили для отдельных элементов текста */
 .ticker-item {
-    /* white-space: nowrap; - убираем, так как теперь nowrap на .ticker-content */
-    /* display: inline-block; - добавляем, чтобы элементы были строчно-блочными внутри flex */
-    display: inline-block;
-    /* Можно добавить отступы между элементами, если не добавлять &nbsp; в шаблоне */
-    /* margin-right: 50px; */
-    /* Убираем любые отступы или бордюры, которые могут повлиять на размещение */
-    margin: 0;
+    /* display: inline-block; - УБРАЛИ, так как теперь .ticker-content display: inline-block */
+    /* white-space: nowrap; - УБРАЛИ */
+    /* margin: 0; - УБРАЛИ, так как теперь &nbsp; в шаблоне */
     padding: 0;
     border: none;
+    /* --- НОВОЕ: Убираем margin, используем &nbsp; в шаблоне для расстояния --- */
+    margin: 0;
+    /* --- КОНЕЦ НОВОГО --- */
 }
 
 .main-content {
@@ -136,10 +130,32 @@ body {
 
 .sidebar {
     width: 250px;
-    background-color: var(--sidebar-bg);
+    background-color: var(--sidebar-bg); /* Основной фон боковой панели */
     padding: 1rem;
     border-right: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column; /* Располагаем дочерние элементы (секции) вертикально */
+    gap: 1rem; /* Отступ между секциями */
 }
+
+/* --- НОВЫЕ СТИЛИ ДЛЯ СЕКЦИЙ БОКОВОГО МЕНЮ --- */
+.sidebar-section {
+    background-color: var(--sidebar-section-bg); /* Фон каждой секции */
+    padding: 0.5rem; /* Внутренний отступ */
+    border-radius: 4px; /* Скругление углов */
+    border: 1px solid var(--border-color); /* Тонкая граница для лучшей видимости */
+}
+
+.sidebar-section h3 {
+    margin-top: 0; /* Убираем отступ сверху заголовка */
+    margin-bottom: 0.5rem; /* Отступ снизу от заголовка к списку */
+    color: var(--accent-color); /* Цвет заголовка */
+    font-size: 1.1em; /* Размер шрифта заголовка */
+    border-bottom: 1px solid var(--border-color); /* Линия под заголовком */
+    padding-bottom: 0.25rem; /* Отступ под линией */
+}
+
+/* --- КОНЕЦ НОВЫХ СТИЛЕЙ --- */
 
 .content {
     flex: 1;
@@ -156,14 +172,12 @@ body {
 
 .theme-toggle {
     cursor: pointer;
-    /* Можно добавить немного отступа для красоты */
-    /* padding: 0.2rem; */
-    /* font-size: 1.2em; - если хочется увеличить значки */
 }
 
 .topic-list, .useful-links {
     list-style: none;
     padding: 0;
+    margin: 0; /* Убираем внешние отступы у списка */
 }
 
 .topic-list li, .useful-links li {
@@ -193,21 +207,28 @@ body {
     opacity: 0.8;
 }
 
-.stats-block {
-    margin: 1rem 0;
-    padding: 0.5rem;
-    background-color: var(--header-bg);
+/* --- СТИЛИ ДЛЯ welcome-block и stats-block (остаются без изменений) --- */
+.welcome-block {
+    background-color: var(--welcome-bg);
+    padding: 1rem;
+    margin-bottom: 1rem;
     border-radius: 4px;
+    border-left: 3px solid var(--accent-color); /* Акцентная линия слева */
 }
 
-/* Заглушка для случайной темы */
-.random-topic-placeholder {
-    display: block;
-    margin-top: 1rem;
-    padding: 0.5rem;
-    background-color: var(--accent-color);
-    color: white;
-    text-align: center;
-    cursor: default; /* Стиль курсора, так как не кликабельно */
-    opacity: 0.5; /* Slightly faded to indicate it's a placeholder */
+.stats-block {
+    background-color: var(--stats-bg);
+    padding: 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color); /* Тонкая граница для лучшей видимости */
+}
+
+.stats-block h3 {
+    margin-top: 0; /* Убираем отступ сверху заголовка */
+    margin-bottom: 0.5rem;
+    color: var(--accent-color); /* Цвет заголовка */
+}
+
+.stats-block p {
+    margin: 0.25rem 0; /* Отступы между параграфами */
 }
