@@ -73,7 +73,7 @@ class SyncLogic:
                         # Подготовка данных для сохранения (теперь через MessageProcessor)
                         msg_dict = self.message_processor.message_to_dict(msg, topic_id)
                         msg_dict['media_path'] = media_path
-                        # --- НОВАЯ ЛОГИКА (для forward та же, что и для backward) ---
+
                         if media_path:
                             _, ext = os.path.splitext(media_path)
                             file_extension = ext[1:] # Сохраняем реальное расширение файла
@@ -92,7 +92,7 @@ class SyncLogic:
                                         determined_media_type = 'document' # Для остальных документов
                             msg_dict['media_type'] = determined_media_type
                             msg_dict['file_extension'] = file_extension
-                        # --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
                         save_message(conn, msg_dict) # Теперь save_message должен быть обновлён для принятия file_extension
                         if verbose:
                             print(f"      [SAVE:{topic_id}] Сохранено сообщение {msg.id}")
@@ -159,7 +159,7 @@ class SyncLogic:
                         # Подготовка данных для сохранения (теперь через MessageProcessor)
                         msg_dict = self.message_processor.message_to_dict(msg, topic_id)
                         msg_dict['media_path'] = media_path
-                        # --- НОВАЯ ЛОГИКА (для backward та же, что и для forward) ---
+
                         if media_path:
                             _, ext = os.path.splitext(media_path)
                             file_extension = ext[1:] # Сохраняем реальное расширение файла
@@ -178,7 +178,7 @@ class SyncLogic:
                                         determined_media_type = 'document' # Для остальных документов
                             msg_dict['media_type'] = determined_media_type
                             msg_dict['file_extension'] = file_extension
-                        # --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+
                         save_message(conn, msg_dict) # Теперь save_message должен быть обновлён для принятия file_extension
                         if verbose:
                             print(f"      [SAVE:{topic_id}] Сохранено сообщение {msg.id}")

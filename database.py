@@ -22,8 +22,7 @@ def init_db(db_path: str):
             last_message_id INTEGER
         )
     """)
-    # --- ИСПРАВЛЕНО: Добавлен UNIQUE(telegram_id, topic_id) в определение таблицы ---
-    # --- ИСПРАВЛЕНО: Добавлен столбец file_extension ---
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
@@ -41,7 +40,7 @@ def init_db(db_path: str):
             UNIQUE(telegram_id, topic_id) -- <-- Уникальное ограничение
         )
     """)
-    # --- ИСПРАВЛЕНО: Добавлен столбец file_size в CREATE TABLE ---
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS media_files (
             id INTEGER PRIMARY KEY,
@@ -82,7 +81,7 @@ def get_db_connection(db_path: str):
     conn.row_factory = sqlite3.Row  # Для доступа по именам колонок
     return conn
 
-def save_topic(conn, topic_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: topic_data: Dict[str, Any]
+def save_topic(conn, topic_data: Dict[str, Any]):
     """Сохраняет или обновляет тему."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -116,7 +115,7 @@ def update_last_message_id(conn, topic_id: int, message_id: int):
     """, (message_id, topic_id))
     conn.commit()
 
-def save_user(conn, user_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: user_data: Dict[str, Any]
+def save_user(conn, user_data: Dict[str, Any]): 
     """Сохраняет или обновляет пользователя."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -138,10 +137,9 @@ def save_user(conn, user_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: user
     ))
     conn.commit()
 
-def save_message(conn, msg_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: msg_data: Dict[str, Any]
+def save_message(conn, msg_data: Dict[str, Any]): 
     """Сохраняет сообщение или обновляет, если уже существует."""
     cursor = conn.cursor()
-    # --- ИСПРАВЛЕНО: Убрана вложенная скобка в VALUES ---
     cursor.execute("""
         INSERT INTO messages (
             telegram_id, topic_id, user_id, text, timestamp,
@@ -180,7 +178,6 @@ def get_file_path_by_media_info(conn, media_id: int, access_hash: int) -> Option
     row = cursor.fetchone()
     return row[0] if row else None
 
-# --- ИСПРАВЛЕНО: Добавлен file_size в save_media_file_info ---
 def save_media_file_info(conn, media_id: int, access_hash: int, file_path: str, file_size: Optional[int] = None):
     """Сохраняет информацию о скачанном файле."""
     cursor = conn.cursor()
@@ -191,11 +188,9 @@ def save_media_file_info(conn, media_id: int, access_hash: int, file_path: str, 
     """, (media_id, access_hash, file_path, file_size))
     conn.commit()
 
-# --- НОВАЯ ФУНКЦИЯ: get_file_size_by_path ---
 def get_file_size_by_path(conn, file_path: str) -> Optional[int]:
     """Возвращает размер файла в байтах по его пути."""
     cursor = conn.cursor()
     cursor.execute("SELECT file_size FROM media_files WHERE file_path = ?", (file_path,))
     row = cursor.fetchone()
     return row[0] if row else None
-# --- КОНЕЦ НОВОЙ ФУНКЦИИ ---

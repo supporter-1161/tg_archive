@@ -5,10 +5,7 @@ import argparse
 import asyncio
 import os
 from database import init_db
-# --- ИМПОРТ ИЗМЕНЁН ---
-from telegram_client import TelegramArchiver # <-- Теперь импортируем из корня
-# --- КОНЕЦ ИМПОРТА ---
-import yaml # <-- Добавим yaml сюда, если он понадобится, но load_config уже в config.py
+from telegram_client import TelegramArchiver 
 
 def init(config):
     db_path = config["storage"]["database"]
@@ -35,7 +32,6 @@ async def sync(config, verbose=False, topic_ids=None, sync_direction='forward'):
     tg_config = config["telegram"]
     db_path = config["storage"]["database"]
     media_dir = config["storage"]["media_dir"]
-    # --- ИЗМЕНЕНИЕ СОЗДАНИЯ TelegramArchiver ---
     archiver = TelegramArchiver(
         api_id=tg_config["api_id"],
         api_hash=tg_config["api_hash"],
@@ -43,7 +39,7 @@ async def sync(config, verbose=False, topic_ids=None, sync_direction='forward'):
         group_id=tg_config["group_id"],
         sync_direction=sync_direction
     )
-    # --- КОНЕЦ ИЗМЕНЕНИЯ ---
+
     await archiver.start()
     await archiver.sync_topics_and_messages(db_path, media_dir, verbose=verbose, topic_ids=topic_ids, sync_direction=sync_direction)
     await archiver.close()

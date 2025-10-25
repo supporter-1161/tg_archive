@@ -15,7 +15,7 @@ def load_config(path: str) -> Dict[str, Any]:
     with open(path, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
-# Опционально: можно добавить функцию валидации конфига
+# Опционально: потом можно добавить функцию валидации конфига
 # def validate_config(config: Dict[str, Any]) -> bool:
 #     # Проверки на наличие обязательных полей и их типов
 #     required_keys = ['telegram', 'storage', 'site', 'ui']

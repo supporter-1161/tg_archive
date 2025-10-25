@@ -6,7 +6,6 @@ import asyncio
 import json
 from typing import Dict, Any, Optional
 
-# --- НОВАЯ ФУНКЦИЯ: human_readable_size ---
 def human_readable_size(size_bytes: int) -> str:
     """Преобразует размер в байтах в человекочитаемый формат."""
     if size_bytes == 0:
@@ -17,7 +16,6 @@ def human_readable_size(size_bytes: int) -> str:
     p = math.pow(1024, i)
     s = round(size_bytes / p, 2)
     return f"{s} {size_names[i]}"
-# --- КОНЕЦ НОВОЙ ФУНКЦИИ ---
 
 class MessageProcessor:
     """
@@ -28,12 +26,10 @@ class MessageProcessor:
         self.api_client = api_client
         self.db_path = db_path
 
-    # --- ИЗМЕНЕНИЕ download_media (принимает topic_id, использует self.api_client и self.db_path) ---
     async def download_media(self, message: Message, media_dir: str, topic_id: Optional[int] = None) -> Optional[str]:
         """Скачивает медиа из сообщения, избегая дубликатов, и возвращает путь."""
         if not message.media:
             return None
-        # --- ИЗВЛЕЧЕНИЕ ИДЕНТИФИКАТОРОВ МЕДИА ---
         media_obj = message.media
         if hasattr(media_obj, 'photo') and media_obj.photo:
             # Для фото
@@ -47,11 +43,9 @@ class MessageProcessor:
             # Неизвестный тип медиа или нет id/access_hash
             # Возвращаем None, чтобы избежать скачивания, или продолжить старую логику
             print(f"    [WARNING] Медиа без id/access_hash (msg.id={message.id}), возможно дубликат.")
-            # --- ПУТЬ СОХРАНЕНИЯ (Старая логика) ---
             sub_dir = f"topics/{topic_id}" if topic_id else "global"
             save_dir = os.path.join(media_dir, sub_dir)
             os.makedirs(save_dir, exist_ok=True)
-            # --- СКАЧИВАНИЕ (Старая логика) ---
             max_retries = 3
             for attempt in range(max_retries):
                 try:

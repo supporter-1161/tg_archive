@@ -1,4 +1,3 @@
-# web_gen/file_copier.py
 import shutil
 import os
 from typing import Dict, Any
@@ -41,13 +40,3 @@ def copy_avatar_files(config: Dict[str, Any], output_dir: str):
     else:
         print(f"[!] Исходная директория аватаров не найдена: {avatars_src}")
 
-# Опционально: можно создать класс, объединяющий все операции копирования
-# class AssetCopier:
-#     def __init__(self, config: Dict[str, Any], output_dir: str):
-#         self.config = config
-#         self.output_dir = output_dir
-#
-#     def copy_all(self):
-#         copy_static_resources('static', self.output_dir)
-#         copy_media_files(self.config, self.output_dir)
-#         copy_avatar_files(self.config, self.output_dir)
