@@ -1,10 +1,10 @@
 # web_gen/db_queries.py
-import sqlite3
 from datetime import datetime
 import math  # Для расчёта количества страниц при пагинации
-# --- ИМПОРТ НОВОЙ ФУНКЦИИ ИЗ database.py ---
 from database import get_file_size_by_path
-# --- КОНЕЦ ИМПОРТА ---
+from web_gen.text_formatter import TelegramToHTMLConverter
+
+html_converter = TelegramToHTMLConverter()
 
 def get_db_stats(conn):
     """Получает статистику из БД."""
@@ -96,7 +96,6 @@ def get_topic_info(conn, topic_telegram_id, config=None):
     print(f"[DEBUG] Информация о теме {topic_telegram_id} не найдена в БД")
     return None
 
-# --- ИЗМЕНЕНИЕ: get_messages_for_topic теперь принимает config ---
 def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1, per_page=50, config=None):
     """Получает сообщения для конкретной темы с пагинацией и сортировкой."""
     cursor = conn.cursor()
@@ -113,16 +112,15 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
     cursor.execute(query, (topic_telegram_id, per_page, offset))
     rows = cursor.fetchall()
     messages = []
-    # --- ПРОВЕРКА РЕЖИМА АНОНИМИЗАЦИИ ---
+
     privacy_config = config.get('ui', {}).get('privacy', {})
     is_anonymous_mode = privacy_config.get('mode', 'normal') == 'anonymous'
     anonymous_nickname = privacy_config.get('anonymous_nickname', 'Аноним')
-    # --- КОНЕЦ ПРОВЕРКИ ---
 
     for row in rows:
         message_dict = {
             'id': row[0],
-            'text': row[1],
+            'text': row[1], # <-- Текст из БД
             'timestamp': datetime.fromisoformat(row[2]).strftime('%Y-%m-%d %H:%M:%S'),
             'media_path': row[3],
             'media_type': row[4],
@@ -132,29 +130,23 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             'author_last_name': row[8],
             'author_avatar_path': row[9]
         }
-        # --- АНОНИМИЗАЦИЯ ---
+
         if is_anonymous_mode:
             message_dict['author_username'] = None # или anonymous_nickname, если хочешь показывать его как юзернейм
             message_dict['author_first_name'] = anonymous_nickname
             message_dict['author_last_name'] = '' # или None
-            # avatar_path можно оставить как есть, если хочешь, чтобы у анонимов была общая аватарка,
-            # или установить на дефолтную в config и обработать в шаблоне.
-            # message_dict['author_avatar_path'] = None # или путь к дефолтной анонимной аватарке
-        # --- КОНЕЦ АНОНИМИЗАЦИИ ---
 
-        # --- ПОЛУЧЕНИЕ РАЗМЕРА ФАЙЛА ---
         if message_dict['media_path']:
             file_size_bytes = get_file_size_by_path(conn, message_dict['media_path'])
             message_dict['file_size_bytes'] = file_size_bytes
-            # Функция human_readable_size определена в message_processor.py, но её можно перенести или импортировать
-            # Пока что просто сохраним байты, преобразование в шаблоне будет
         else:
             message_dict['file_size_bytes'] = None
-        # --- КОНЕЦ ПОЛУЧЕНИЯ РАЗМЕРА ---
+        html_text = html_converter.convert(message_dict['text'])
+        message_dict['text'] = html_text # <-- Теперь сохраняем HTML-текст
+
         messages.append(message_dict)
     print(f"[DEBUG] Найдено сообщений для темы {topic_telegram_id}, страница {page}: {len(messages)}")
     return messages
-# --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
 def get_total_message_pages_for_topic(conn, topic_telegram_id, per_page=50):
     """Получает общее количество страниц для сообщений в теме."""
@@ -164,3 +156,4 @@ def get_total_message_pages_for_topic(conn, topic_telegram_id, per_page=50):
     pages = math.ceil(total_count / per_page) if per_page > 0 else 0
     print(f"[DEBUG] Всего сообщений для темы {topic_telegram_id}: {total_count}, страниц при {per_page} на странице: {pages}")
     return pages
+
