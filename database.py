@@ -1,3 +1,4 @@
+# database.py
 import sqlite3
 import os
 from typing import Optional, Dict, Any
@@ -9,6 +10,7 @@ def init_db(db_path: str):
         os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS topics (
             id INTEGER PRIMARY KEY,
@@ -20,6 +22,8 @@ def init_db(db_path: str):
             last_message_id INTEGER
         )
     """)
+    # --- ИСПРАВЛЕНО: Добавлен UNIQUE(telegram_id, topic_id) в определение таблицы ---
+    # --- ИСПРАВЛЕНО: Добавлен столбец file_extension ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
@@ -34,18 +38,21 @@ def init_db(db_path: str):
             poll_data TEXT, -- JSON stored as TEXT
             deleted BOOLEAN DEFAULT FALSE,
             file_extension TEXT,
-            UNIQUE(telegram_id, topic_id)
+            UNIQUE(telegram_id, topic_id) -- <-- Уникальное ограничение
         )
     """)
+    # --- ИСПРАВЛЕНО: Добавлен столбец file_size в CREATE TABLE ---
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS media_files (
             id INTEGER PRIMARY KEY,
             telegram_media_id INTEGER NOT NULL,
             access_hash INTEGER NOT NULL,
             file_path TEXT NOT NULL UNIQUE, -- Уникальный путь
+            file_size INTEGER, -- Размер файла в байтах
             UNIQUE(telegram_media_id, access_hash) -- Уникальная комбинация id и access_hash
         )
     """)
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -57,12 +64,15 @@ def init_db(db_path: str):
             last_updated TIMESTAMP
         )
     """)
+
     # Индексы
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_reply ON messages(reply_to)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_telegram_ids ON media_files(telegram_media_id, access_hash)")
+    # --- ИСПРАВЛЕНО: Индекс для telegram_media_id, access_hash, file_size ---
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_telegram_ids ON media_files(telegram_media_id, access_hash, file_size)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_path ON media_files(file_path)")
+
     conn.commit()
     conn.close()
 
@@ -72,8 +82,7 @@ def get_db_connection(db_path: str):
     conn.row_factory = sqlite3.Row  # Для доступа по именам колонок
     return conn
 
-
-def save_topic(conn, topic_data: Dict[str, Any]):
+def save_topic(conn, topic_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: topic_data: Dict[str, Any]
     """Сохраняет или обновляет тему."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -92,14 +101,12 @@ def save_topic(conn, topic_data: Dict[str, Any]):
     ))
     conn.commit()
 
-
 def get_last_message_id(conn, topic_id: int) -> Optional[int]:
     """Возвращает последний сохранённый message_id для темы."""
     cursor = conn.cursor()
     cursor.execute("SELECT last_message_id FROM topics WHERE telegram_id = ?", (topic_id,))
     row = cursor.fetchone()
     return row[0] if row else None
-
 
 def update_last_message_id(conn, topic_id: int, message_id: int):
     """Обновляет last_message_id для темы."""
@@ -109,8 +116,7 @@ def update_last_message_id(conn, topic_id: int, message_id: int):
     """, (message_id, topic_id))
     conn.commit()
 
-
-def save_user(conn, user_data: Dict[str, Any]):
+def save_user(conn, user_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: user_data: Dict[str, Any]
     """Сохраняет или обновляет пользователя."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -132,15 +138,15 @@ def save_user(conn, user_data: Dict[str, Any]):
     ))
     conn.commit()
 
-
-def save_message(conn, msg_data: Dict[str, Any]):
+def save_message(conn, msg_data: Dict[str, Any]): # <-- ИСПРАВЛЕНО: msg_data: Dict[str, Any]
     """Сохраняет сообщение или обновляет, если уже существует."""
     cursor = conn.cursor()
+    # --- ИСПРАВЛЕНО: Убрана вложенная скобка в VALUES ---
     cursor.execute("""
         INSERT INTO messages (
             telegram_id, topic_id, user_id, text, timestamp,
-            reply_to, media_path, media_type, poll_data, file_extension -- <-- Добавили file_extension
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?) -- <-- Добавили ?
+            reply_to, media_path, media_type, poll_data, file_extension
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(telegram_id, topic_id) DO UPDATE SET
             user_id = excluded.user_id,
             text = COALESCE(excluded.text, text),
@@ -149,7 +155,7 @@ def save_message(conn, msg_data: Dict[str, Any]):
             media_path = COALESCE(excluded.media_path, media_path),
             media_type = COALESCE(excluded.media_type, media_type),
             poll_data = COALESCE(excluded.poll_data, poll_data),
-            file_extension = COALESCE(excluded.file_extension, file_extension) -- <-- Добавили file_extension
+            file_extension = COALESCE(excluded.file_extension, file_extension)
     """, (
         msg_data['telegram_id'],
         msg_data.get('topic_id'),
@@ -160,7 +166,7 @@ def save_message(conn, msg_data: Dict[str, Any]):
         msg_data.get('media_path'),
         msg_data.get('media_type'),
         msg_data.get('poll_data'),  # JSON -> str
-        msg_data.get('file_extension') # <-- Новое значение
+        msg_data.get('file_extension')
     ))
     conn.commit()
 
@@ -174,11 +180,22 @@ def get_file_path_by_media_info(conn, media_id: int, access_hash: int) -> Option
     row = cursor.fetchone()
     return row[0] if row else None
 
-def save_media_file_info(conn, media_id: int, access_hash: int, file_path: str):
+# --- ИСПРАВЛЕНО: Добавлен file_size в save_media_file_info ---
+def save_media_file_info(conn, media_id: int, access_hash: int, file_path: str, file_size: Optional[int] = None):
     """Сохраняет информацию о скачанном файле."""
     cursor = conn.cursor()
+    # Используем INSERT OR REPLACE для обновления размера, если файл уже был записан без него
     cursor.execute("""
-        INSERT OR IGNORE INTO media_files (telegram_media_id, access_hash, file_path)
-        VALUES (?, ?, ?)
-    """, (media_id, access_hash, file_path))
+        INSERT OR REPLACE INTO media_files (telegram_media_id, access_hash, file_path, file_size)
+        VALUES (?, ?, ?, ?)
+    """, (media_id, access_hash, file_path, file_size))
     conn.commit()
+
+# --- НОВАЯ ФУНКЦИЯ: get_file_size_by_path ---
+def get_file_size_by_path(conn, file_path: str) -> Optional[int]:
+    """Возвращает размер файла в байтах по его пути."""
+    cursor = conn.cursor()
+    cursor.execute("SELECT file_size FROM media_files WHERE file_path = ?", (file_path,))
+    row = cursor.fetchone()
+    return row[0] if row else None
+# --- КОНЕЦ НОВОЙ ФУНКЦИИ ---

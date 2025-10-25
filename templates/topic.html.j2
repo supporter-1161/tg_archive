@@ -70,7 +70,6 @@
             <div class="order-label">
                 Показ: {% if show_order_label %}от новых к старым{% else %}от старых к новым{% endif %}
             </div>
-
             <!-- Верхняя пагинация -->
             {% if total_pages > 1 and config.ui.get('show_top_pagination', false) %}
             <div class="pagination top-pagination">
@@ -88,8 +87,7 @@
                     <a href="topic_{{ current_topic.id }}_page_{{ current_page + 1 }}.html">Вперёд &raquo;</a>
                 {% endif %}
             </div>
-            {% endif %}
-
+           {% endif %}
             <div class="messages-list">
                 {% for message in messages %}
                 <div class="message-card">
@@ -111,6 +109,26 @@
                     </div>
                     {% if message.media_path %}
                         <div class="message-media">
+                            <!-- --- ОТОБРАЖЕНИЕ РАЗМЕРА ФАЙЛА --- -->
+                            {% if message.file_size_bytes %}
+                                <!-- Функция human_readable_size не доступна в Jinja2 по умолчанию, но можно её зарегистрировать или вычислить в Python -->
+                                <!-- Пока используем простой JS для вычисления внутри шаблона, передавая байты -->
+                                <div class="file-size" style="color: gray; font-size: 0.8em;">
+                                    <script>
+                                        // Функция для преобразования байтов в человекочитаемый формат
+                                        function humanReadableSize(bytes) {
+                                            if (bytes === 0) return '0 B';
+                                            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                            const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                                            if (i === 0) return bytes + ' ' + sizes[i];
+                                            return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+                                        }
+                                        // Выводим размер файла
+                                        document.write(humanReadableSize({{ message.file_size_bytes }}));
+                                    </script>
+                                </div>
+                            {% endif %}
+                            <!-- --- КОНЕЦ ОТОБРАЖЕНИЯ РАЗМЕРА --- -->
                             {% if message.media_type == 'photo' %}
                                 <a href="{{ message.media_path }}" target="_blank"><img src="{{ message.media_path }}" alt="Photo"></a>
                             {% elif message.media_type == 'video' %}
@@ -123,12 +141,12 @@
                         </div>
                     {% endif %}
                     {% if message.text %}
-                        <div class="message-text">{{ message.text | replace('\n', '<br>') | safe }}</div>
+                        <div class="message-text">{{ message.text | replace('
+', '<br>') | safe }}</div>
                     {% endif %}
                 </div>
                 {% endfor %}
             </div>
-
             <!-- Нижняя пагинация -->
             {% if total_pages > 1 %}
             <div class="pagination">
@@ -169,4 +187,4 @@
         });
     </script>
 </body>
-</html>
+</html> 
