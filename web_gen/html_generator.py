@@ -3,7 +3,9 @@ import os
 import sqlite3
 from jinja2 import Environment, FileSystemLoader
 from datetime import datetime
+# --- ИМПОРТ ИЗМЕНЁН: теперь импортируем обновлённую функцию ---
 from web_gen.db_queries import get_db_stats, get_topics, get_topic_info, get_messages_for_topic, get_total_message_pages_for_topic
+# --- КОНЕЦ ИМПОРТА ---
 
 class HTMLGenerator:
     """
@@ -25,7 +27,9 @@ class HTMLGenerator:
 
         # --- 1. Генерация главной страницы ---
         total_messages, total_topics, most_active_topic = get_db_stats(conn) # <-- Используем импортированную функцию
+        # --- ИЗМЕНЕНИЕ: передаём config в get_topics ---
         topics = get_topics(conn, self.config.get('ui', {}).get('topics_ranking', 'by_messages'), config=self.config) # <-- Используем импортированную функцию
+        # --- КОНЕЦ ИЗМЕНЕНИЯ ---
         messages_per_page = self.config.get('ui', {}).get('messages_per_page', 50)
 
         # Подготовка данных для шаблона индекса (включая имена файлов страниц тем)
@@ -59,7 +63,9 @@ class HTMLGenerator:
         for topic in topics:
             topic_id = topic['id']
             print(f"[DEBUG] Обработка темы: {topic_id} - {topic['title']}")
+            # --- ИЗМЕНЕНИЕ: передаём config в get_topic_info ---
             topic_info = get_topic_info(conn, topic_id, config=self.config) # <-- Используем импортированную функцию
+            # --- КОНЕЦ ИЗМЕНЕНИЯ ---
             if not topic_info:
                 print(f"[WARNING] Информация о теме {topic_id} не найдена, пропуск.")
                 continue
@@ -73,8 +79,9 @@ class HTMLGenerator:
 
             for page_num in range(1, total_pages + 1):
                 print(f"[DEBUG] Обработка страницы {page_num} для темы {topic_id}")
-                messages = get_messages_for_topic(conn, topic_id, order, page_num, messages_per_page) # <-- Используем импортированную функцию
-
+                # --- ИЗМЕНЕНИЕ: передаём config в get_messages_for_topic ---
+                messages = get_messages_for_topic(conn, topic_id, order, page_num, messages_per_page, config=self.config) # <-- Используем импортированную функцию
+                # --- КОНЕЦ ИЗМЕНЕНИЯ ---
                 # ВСЕГДА используем формат topic_X_page_N.html
                 filename = f"topic_{topic_id}_page_{page_num}.html"
 
@@ -105,3 +112,4 @@ class HTMLGenerator:
 
         conn.close()
         print(f"[+] Генерация HTML завершена.")
+

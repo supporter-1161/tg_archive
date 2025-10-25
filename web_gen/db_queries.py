@@ -2,7 +2,6 @@
 import sqlite3
 from datetime import datetime
 import math  # Для расчёта количества страниц при пагинации
-
 # --- ИМПОРТ НОВОЙ ФУНКЦИИ ИЗ database.py ---
 from database import get_file_size_by_path
 # --- КОНЕЦ ИМПОРТА ---
@@ -48,27 +47,23 @@ def get_topics(conn, ranking_method="by_messages", config=None):
     else:
         print(f"[WARNING] Метод сортировки '{ranking_method}' не реализован, используется 'by_messages'")
         return get_topics(conn, "by_messages", config)
-
     rows = cursor.fetchall()
     topics = []
     config_icon_map = {}
     if config and 'topic_icons' in config:
         config_icon_map = config['topic_icons']
-
     for row in rows:
         topic_telegram_id = row[0]
         topic_db_icon = row[2]
         final_icon = topic_db_icon
         if final_icon is None:
             final_icon = config_icon_map.get(topic_telegram_id)
-
         topics.append({
             'id': topic_telegram_id,
             'title': row[1],
             'icon_emoji': final_icon,
             'message_count': row[3]
         })
-
     print(f"[DEBUG] Найдено тем: {len(topics)}")
     return topics
 
@@ -90,7 +85,6 @@ def get_topic_info(conn, topic_telegram_id, config=None):
         final_icon = topic_db_icon
         if final_icon is None and config and 'topic_icons' in config:
             final_icon = config['topic_icons'].get(topic_telegram_id)
-
         return {
             'id': topic_telegram_id,  # ←←← КЛЮЧЕВОЕ: теперь есть 'id'
             'title': row[0],
@@ -102,7 +96,8 @@ def get_topic_info(conn, topic_telegram_id, config=None):
     print(f"[DEBUG] Информация о теме {topic_telegram_id} не найдена в БД")
     return None
 
-def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1, per_page=50):
+# --- ИЗМЕНЕНИЕ: get_messages_for_topic теперь принимает config ---
+def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1, per_page=50, config=None):
     """Получает сообщения для конкретной темы с пагинацией и сортировкой."""
     cursor = conn.cursor()
     offset = (page - 1) * per_page
@@ -118,6 +113,12 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
     cursor.execute(query, (topic_telegram_id, per_page, offset))
     rows = cursor.fetchall()
     messages = []
+    # --- ПРОВЕРКА РЕЖИМА АНОНИМИЗАЦИИ ---
+    privacy_config = config.get('ui', {}).get('privacy', {})
+    is_anonymous_mode = privacy_config.get('mode', 'normal') == 'anonymous'
+    anonymous_nickname = privacy_config.get('anonymous_nickname', 'Аноним')
+    # --- КОНЕЦ ПРОВЕРКИ ---
+
     for row in rows:
         message_dict = {
             'id': row[0],
@@ -131,6 +132,16 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             'author_last_name': row[8],
             'author_avatar_path': row[9]
         }
+        # --- АНОНИМИЗАЦИЯ ---
+        if is_anonymous_mode:
+            message_dict['author_username'] = None # или anonymous_nickname, если хочешь показывать его как юзернейм
+            message_dict['author_first_name'] = anonymous_nickname
+            message_dict['author_last_name'] = '' # или None
+            # avatar_path можно оставить как есть, если хочешь, чтобы у анонимов была общая аватарка,
+            # или установить на дефолтную в config и обработать в шаблоне.
+            # message_dict['author_avatar_path'] = None # или путь к дефолтной анонимной аватарке
+        # --- КОНЕЦ АНОНИМИЗАЦИИ ---
+
         # --- ПОЛУЧЕНИЕ РАЗМЕРА ФАЙЛА ---
         if message_dict['media_path']:
             file_size_bytes = get_file_size_by_path(conn, message_dict['media_path'])
@@ -141,9 +152,9 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             message_dict['file_size_bytes'] = None
         # --- КОНЕЦ ПОЛУЧЕНИЯ РАЗМЕРА ---
         messages.append(message_dict)
-
     print(f"[DEBUG] Найдено сообщений для темы {topic_telegram_id}, страница {page}: {len(messages)}")
     return messages
+# --- КОНЕЦ ИЗМЕНЕНИЯ ---
 
 def get_total_message_pages_for_topic(conn, topic_telegram_id, per_page=50):
     """Получает общее количество страниц для сообщений в теме."""
