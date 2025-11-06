@@ -10,7 +10,6 @@ def init_db(db_path: str):
         os.makedirs(db_dir, exist_ok=True)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS topics (
             id INTEGER PRIMARY KEY,
@@ -22,7 +21,6 @@ def init_db(db_path: str):
             last_message_id INTEGER
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS messages (
             id INTEGER PRIMARY KEY,
@@ -40,7 +38,6 @@ def init_db(db_path: str):
             UNIQUE(telegram_id, topic_id) -- <-- Уникальное ограничение
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS media_files (
             id INTEGER PRIMARY KEY,
@@ -51,7 +48,6 @@ def init_db(db_path: str):
             UNIQUE(telegram_media_id, access_hash) -- Уникальная комбинация id и access_hash
         )
     """)
-
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -63,7 +59,14 @@ def init_db(db_path: str):
             last_updated TIMESTAMP
         )
     """)
-
+    # --- НОВОЕ: Добавляем таблицу для статистики генерации ---
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS generation_stats (
+            id INTEGER PRIMARY KEY CHECK (id = 1), -- Уникальная строка
+            run_count INTEGER NOT NULL DEFAULT 0
+        )
+    """)
+    # --- КОНЕЦ НОВОГО ---
     # Индексы
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_messages_topic ON messages(topic_id)")
@@ -71,7 +74,6 @@ def init_db(db_path: str):
     # --- ИСПРАВЛЕНО: Индекс для telegram_media_id, access_hash, file_size ---
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_telegram_ids ON media_files(telegram_media_id, access_hash, file_size)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_media_files_path ON media_files(file_path)")
-
     conn.commit()
     conn.close()
 
@@ -115,7 +117,7 @@ def update_last_message_id(conn, topic_id: int, message_id: int):
     """, (message_id, topic_id))
     conn.commit()
 
-def save_user(conn, user_data: Dict[str, Any]): 
+def save_user(conn, user_data: Dict[str, Any]):
     """Сохраняет или обновляет пользователя."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -137,7 +139,7 @@ def save_user(conn, user_data: Dict[str, Any]):
     ))
     conn.commit()
 
-def save_message(conn, msg_data: Dict[str, Any]): 
+def save_message(conn, msg_data: Dict[str, Any]):
     """Сохраняет сообщение или обновляет, если уже существует."""
     cursor = conn.cursor()
     cursor.execute("""
@@ -194,3 +196,36 @@ def get_file_size_by_path(conn, file_path: str) -> Optional[int]:
     cursor.execute("SELECT file_size FROM media_files WHERE file_path = ?", (file_path,))
     row = cursor.fetchone()
     return row[0] if row else None
+
+def get_generation_run_count(conn) -> int:
+    """Получает текущий счётчик запусков генерации."""
+    cursor = conn.cursor()
+    # Проверяем, существует ли запись
+    cursor.execute("SELECT run_count FROM generation_stats WHERE id = 1")
+    row = cursor.fetchone()
+    if row:
+        return row[0]
+    else:
+        # Если записи нет, создаём её с начальным значением 0
+        cursor.execute("INSERT INTO generation_stats (id, run_count) VALUES (1, 0)")
+        conn.commit()
+        return 0
+
+def increment_generation_run_count(conn) -> int:
+    """Увеличивает счётчик запусков генерации на 1 и возвращает новое значение."""
+    cursor = conn.cursor()
+    # Увеличиваем счётчик
+    cursor.execute("UPDATE generation_stats SET run_count = run_count + 1 WHERE id = 1")
+    # Если не обновилось (т.е. записи не было), создаём её с 1
+    if cursor.rowcount == 0:
+        cursor.execute("INSERT INTO generation_stats (id, run_count) VALUES (1, 1)")
+    else:
+        # Если обновилось, получаем новое значение
+        cursor.execute("SELECT run_count FROM generation_stats WHERE id = 1")
+        new_count = cursor.fetchone()[0]
+        conn.commit()
+        return new_count
+    # Если мы попали сюда, значит, была создана новая запись с 1
+    conn.commit()
+    return 1
+# --- КОНЕЦ НОВОГО ---

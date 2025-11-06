@@ -76,14 +76,16 @@
                 <p>Всего сообщений: {{ total_messages }}</p>
                 <p>Всего тем: {{ total_topics }}</p>
                 <p>Самая активная тема: {{ most_active_topic }}</p>
+                <p>Версия генерации (запуск #{{ generation_run_number }})</p>
             </div>
         </main>
     </div>
     <footer class="footer">
-        <p>{{ site_title }} | Обновлено: {{ (now() if now else 'N/A') }} | Сообщений: {{ total_messages }}</p>
+        <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ total_messages }}</p>
         <p>{{ footer_text }}</p>
     </footer>
     <script>
+        // Мы оставим её, но удалим вызов получения даты из неё.
         function toggleTheme() {
             const body = document.body;
             const currentTheme = body.getAttribute('data-theme');
@@ -91,14 +93,6 @@
             body.setAttribute('data-theme', newTheme);
             // Не сохраняем тему между сессиями
         }
-        // Попытка получить текущую дату для подвала (ограничено в Jinja2, но можно в JS)
-        document.addEventListener('DOMContentLoaded', function() {
-            const nowElement = document.querySelector('.footer p:first-child');
-            if (nowElement && nowElement.textContent.includes('N/A')) {
-                 const now = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-                 nowElement.innerHTML = nowElement.innerHTML.replace('N/A', now);
-            }
-        });
     </script>
 </body>
 </html>

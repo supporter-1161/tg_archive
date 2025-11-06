@@ -168,7 +168,7 @@
         </main>
     </div>
     <footer class="footer">
-        <p>{{ site_title }} | Обновлено: {{ (now() if now else 'N/A') }} | Сообщений: {{ current_topic.total_messages }}</p>
+        <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ current_topic.total_messages }}</p>
         <p>{{ footer_text }}</p>
     </footer>
     <script>
@@ -178,13 +178,6 @@
             const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
             body.setAttribute('data-theme', newTheme);
         }
-        document.addEventListener('DOMContentLoaded', function() {
-            const nowElement = document.querySelector('.footer p:first-child');
-            if (nowElement && nowElement.textContent.includes('N/A')) {
-                 const now = new Date().toISOString().split('T')[0];
-                 nowElement.innerHTML = nowElement.innerHTML.replace('N/A', now);
-            }
-        });
     </script>
 </body>
-</html> 
+</html>
