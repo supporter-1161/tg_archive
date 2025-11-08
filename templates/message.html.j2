@@ -1,0 +1,138 @@
+<!-- templates/message.html.j2 -->
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Сообщение #{{ message.id }} - {{ site_title }}</title>
+    <link rel="stylesheet" href="../static/css/style.css">
+    <link rel="stylesheet" href="../static/css/topic.css">
+</head>
+<body data-theme="{{ default_theme }}">
+    <header class="header">
+        <div class="header-title-desc">
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <div class="controls">
+            <span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
+        </div>
+    </header>
+    {% if ticker_enabled %}
+    <div class="ticker">
+        <div class="ticker-content">
+            {% for text in ticker_texts %}
+                <span class="ticker-item">{{ text }}</span>
+                &nbsp; &nbsp; &nbsp;
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    <div class="main-content">
+        <aside class="sidebar">
+            <div class="sidebar-section">
+                <h3>Все Темы</h3>
+                <ul class="topic-list">
+                    {% for topic in topics %}
+                    <li>
+                        <a href="{% if topic.id == current_topic.id %}../topics/topic_{{ topic.id }}_page_1.html{% else %}../topics/topic_{{ topic.id }}_page_1.html{% endif %}">
+                            {{ topic.icon_emoji | default('') }} {{ topic.title }}
+                            <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="sidebar-section">
+                <h3>Полезные ссылки</h3>
+                <ul class="useful-links">
+                    {% for link in useful_links %}
+                    <li>
+                        <a href="{{ link.url }}" target="_blank">
+                            {{ link.icon | default('🔗') }} {{ link.name }}
+                            {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </aside>
+        <main class="content">
+            <div class="breadcrumb">
+                <a href="../index.html">Главная</a> &raquo;
+                <a href="../topics/topic_{{ current_topic.id }}_page_1.html">{{ current_topic.title }}</a> &raquo;
+                Сообщение #{{ message.id }}
+            </div>
+            <div class="topic-header">
+                <h2>{{ current_topic.icon_emoji | default('') }} {{ current_topic.title }}</h2>
+            </div>
+            <div class="info-panel">
+                <p>Сообщение #{{ message.id }} | Отправлено: {{ message.timestamp }}</p>
+            </div>
+            <div class="message-card">
+                <div class="message-header">
+                    {% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
+                        <img src="../{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
+                    {% else %}
+                        {% set default_avatar = config.get('ui', {}).get('default_avatar_path', '') %}
+                        {% if default_avatar %}
+                            <img src="../{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
+                        {% else %}
+                            <div class="message-author-icon">👤</div>
+                        {% endif %}
+                    {% endif %}
+                    <span class="message-author-name">
+                        {{ message.author_first_name }}{% if message.author_last_name %} {{ message.author_last_name }}{% endif %}{% if message.author_username %} (@{{ message.author_username }}){% endif %}
+                    </span>
+                    <span class="message-timestamp">{{ message.timestamp }}</span>
+                </div>
+                {% if message.media_path %}
+                    <div class="message-media">
+                        {% if message.file_size_bytes %}
+                            <div class="file-size" style="color: gray; font-size: 0.8em;">
+                                <script>
+                                    function humanReadableSize(bytes) {
+                                        if (bytes === 0) return '0 B';
+                                        const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+                                        const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
+                                        if (i === 0) return bytes + ' ' + sizes[i];
+                                        return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
+                                    }
+                                    document.write(humanReadableSize({{ message.file_size_bytes }}));
+                                </script>
+                            </div>
+                        {% endif %}
+                        {% if message.media_type == 'photo' %}
+                            <a href="../{{ message.media_path }}" target="_blank"><img src="../{{ message.media_path }}" alt="Photo"></a>
+                        {% elif message.media_type == 'video' %}
+                            <video controls><source src="../{{ message.media_path }}" type="video/mp4">Видео не поддерживается.</video>
+                        {% elif message.media_type == 'document' or message.media_type == 'audio' %}
+                            <a href="../{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }} ({{ message.file_extension | upper }})</a>
+                        {% else %}
+                            <a href="../{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }}</a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                {% if message.text %}
+                    <div class="message-text">{{ message.text | safe }}</div>
+                {% endif %}
+            </div>
+            <div style="margin-top: 1rem;">
+                <a href="../topics/topic_{{ current_topic.id }}_page_1.html">&larr; Вернуться к теме</a>
+            </div>
+        </main>
+    </div>
+    <footer class="footer">
+        <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ current_topic.total_messages }}</p>
+        <p>{{ footer_text }}</p>
+    </footer>
+    <script>
+        function toggleTheme() {
+            const body = document.body;
+            const currentTheme = body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            body.setAttribute('data-theme', newTheme);
+        }
+    </script>
+</body>
+</html>
