@@ -1,6 +1,7 @@
 # web_gen/db_queries.py
+import os
 from datetime import datetime
-import math  # Для расчёта количества страниц при пагинации
+import math
 from database import get_file_size_by_path
 from web_gen.text_formatter import TelegramToHTMLConverter
 
@@ -86,7 +87,7 @@ def get_topic_info(conn, topic_telegram_id, config=None):
         if final_icon is None and config and 'topic_icons' in config:
             final_icon = config['topic_icons'].get(topic_telegram_id)
         return {
-            'id': topic_telegram_id,  # ←←← КЛЮЧЕВОЕ: теперь есть 'id'
+            'id': topic_telegram_id,
             'title': row[0],
             'icon_emoji': final_icon,
             'total_messages': row[2] or 0,
@@ -112,15 +113,13 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
     cursor.execute(query, (topic_telegram_id, per_page, offset))
     rows = cursor.fetchall()
     messages = []
-
     privacy_config = config.get('ui', {}).get('privacy', {})
     is_anonymous_mode = privacy_config.get('mode', 'normal') == 'anonymous'
     anonymous_nickname = privacy_config.get('anonymous_nickname', 'Аноним')
-
     for row in rows:
         message_dict = {
             'id': row[0],
-            'text': row[1], # <-- Текст из БД
+            'text': row[1],
             'timestamp': datetime.fromisoformat(row[2]).strftime('%Y-%m-%d %H:%M:%S'),
             'media_path': row[3],
             'media_type': row[4],
@@ -131,20 +130,51 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             'author_avatar_path': row[9]
         }
 
+        # --- АНОНИМИЗАЦИЯ ---
         if is_anonymous_mode:
-            message_dict['author_username'] = None # или anonymous_nickname, если хочешь показывать его как юзернейм
+            message_dict['author_username'] = None
             message_dict['author_first_name'] = anonymous_nickname
-            message_dict['author_last_name'] = '' # или None
+            message_dict['author_last_name'] = ''
 
+        # --- ОБРАБОТКА ПУТЕЙ К МЕДИА ---
         if message_dict['media_path']:
-            file_size_bytes = get_file_size_by_path(conn, message_dict['media_path'])
+            full_media_path = message_dict['media_path']
+            if full_media_path.startswith('media/'):
+                rel_path = full_media_path[6:]  # отрезаем 'media/'
+            else:
+                rel_path = full_media_path
+
+            # Оригинал всегда в original/
+            message_dict['media_original_path'] = f"media/original/{rel_path}"
+
+            # Миниатюра — ТОЛЬКО для фото, и с суффиксом .thumb
+            if message_dict['media_type'] == 'photo':
+                dir_part = os.path.dirname(rel_path)
+                file_part = os.path.basename(rel_path)
+                stem = os.path.splitext(file_part)[0]
+                ext = os.path.splitext(file_part)[1]
+                thumb_file = f"{stem}.thumb{ext}"
+                if dir_part:
+                    thumb_rel_path = os.path.join(dir_part, thumb_file)
+                else:
+                    thumb_rel_path = thumb_file
+                message_dict['media_thumbnail_path'] = f"media/thumbs/{thumb_rel_path}"
+            else:
+                message_dict['media_thumbnail_path'] = None
+
+            file_size_bytes = get_file_size_by_path(conn, full_media_path)
             message_dict['file_size_bytes'] = file_size_bytes
         else:
+            message_dict['media_original_path'] = None
+            message_dict['media_thumbnail_path'] = None
             message_dict['file_size_bytes'] = None
+
+        # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
         html_text = html_converter.convert(message_dict['text'])
-        message_dict['text'] = html_text # <-- Теперь сохраняем HTML-текст
+        message_dict['text'] = html_text
 
         messages.append(message_dict)
+
     print(f"[DEBUG] Найдено сообщений для темы {topic_telegram_id}, страница {page}: {len(messages)}")
     return messages
 
@@ -156,4 +186,3 @@ def get_total_message_pages_for_topic(conn, topic_telegram_id, per_page=50):
     pages = math.ceil(total_count / per_page) if per_page > 0 else 0
     print(f"[DEBUG] Всего сообщений для темы {topic_telegram_id}: {total_count}, страниц при {per_page} на странице: {pages}")
     return pages
-

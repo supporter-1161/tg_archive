@@ -108,7 +108,7 @@
                         </span>
                         <span class="message-timestamp">{{ message.timestamp }}</span>
                     </div>
-                    {% if message.media_path %}
+                    {% if message.media_thumbnail_path or (message.media_original_path and message.media_type != 'photo') %}
                         <div class="message-media">
                             {% if message.file_size_bytes %}
                                 <div class="file-size" style="color: gray; font-size: 0.8em;">
@@ -125,13 +125,19 @@
                                 </div>
                             {% endif %}
                             {% if message.media_type == 'photo' %}
-                                <a href="../{{ message.media_path }}" target="_blank"><img src="../{{ message.media_path }}" alt="Photo"></a>
+                                <a href="../{{ message.media_original_path }}" target="_blank">
+                                    <img src="../{{ message.media_thumbnail_path }}" alt="Photo">
+                                </a>
                             {% elif message.media_type == 'video' %}
-                                <video controls><source src="../{{ message.media_path }}" type="video/mp4">Видео не поддерживается.</video>
-                            {% elif message.media_type == 'document' or message.media_type == 'audio' %}
-                                <a href="../{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }} ({{ message.file_extension | upper }})</a>
+                                <video controls><source src="../{{ message.media_original_path }}" type="video/mp4">Видео не поддерживается.</video>
+                            {% elif message.media_type in ('document', 'audio') %}
+                                <a href="../{{ message.media_original_path }}" target="_blank" download>
+                                    Файл: {{ message.media_original_path.split('/')[-1] }} ({{ message.file_extension | upper }})
+                                </a>
                             {% else %}
-                                <a href="../{{ message.media_path }}" target="_blank" download>Файл: {{ message.media_path.split('/')[-1] }}</a>
+                                <a href="../{{ message.media_original_path }}" target="_blank" download>
+                                    Файл: {{ message.media_original_path.split('/')[-1] }}
+                                </a>
                             {% endif %}
                         </div>
                     {% endif %}
