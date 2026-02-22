@@ -16,6 +16,7 @@ lib64
 # Игнорируем конкретные файлы
 tg_archive.session
 codebase*
+tg_arch-*
 tg_archive.session
 tg_archive.db
 pyvenv.cfg

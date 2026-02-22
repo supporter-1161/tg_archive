@@ -2,97 +2,129 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ site_title }}</title>
-    <!-- Подключаем основные стили -->
-    <link rel="stylesheet" href="static/css/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{ site_title }}</title>
+<!-- Подключаем основные стили -->
+<link rel="stylesheet" href="static/css/style.css">
+<style>
+/* Стили для поиска прямо в шаблоне — чтобы не трогать глобальные CSS сразу */
+.search-box {
+margin: 1rem 0;
+display: flex;
+gap: 0.5rem;
+}
+.search-input {
+flex: 1;
+padding: 0.5rem;
+border: 1px solid var(--border-color);
+border-radius: 4px;
+background-color: var(--bg-color);
+color: var(--text-color);
+}
+.search-input:focus {
+outline: 2px solid var(--accent-color);
+}
+.search-button {
+padding: 0.5rem 1rem;
+background-color: var(--accent-color);
+color: white;
+border: none;
+border-radius: 4px;
+cursor: pointer;
+}
+.search-button:hover {
+opacity: 0.9;
+}
+</style>
 </head>
 <body data-theme="{{ default_theme }}">
-    <header class="header">
-        <div class="header-title-desc"> <!-- Новый div для заголовка и описания -->
-            <h1>{{ site_title }}</h1>
-            <p>{{ site_description }}</p>
-        </div>
-        <div class="controls"> <!-- Контролы справа -->
-            <!-- Переключатель темы -->
-            <span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
-        </div>
-        <!-- Зарезервированное место под будущую строку поиска -->
-        <!-- <input type="text" placeholder="Поиск..."> -->
-    </header>
-    {% if ticker_enabled %}
-    <div class="ticker">
-        <div class="ticker-content">
-            {% for text in ticker_texts %}
-                <span class="ticker-item">{{ text }}</span>
-                &nbsp; &nbsp; &nbsp;
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-    <div class="main-content">
-        <aside class="sidebar">
-            <!-- Секция "Все Темы" -->
-            <div class="sidebar-section">
-                <h3>Все Темы</h3>
-                <ul class="topic-list">
-                    {% for topic in topics %}
-                    <li>
-                        <a href="{{ topic.first_page_filename }}"> <!-- Используем новое поле -->
-                            {{ topic.icon_emoji | default('') }} {{ topic.title }}
-                            <span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <!-- Секция "Полезные Ссылки" -->
-            <div class="sidebar-section">
-                <h3>Полезные ссылки</h3>
-                <ul class="useful-links">
-                    {% for link in useful_links %}
-                    <li>
-                        <a href="{{ link.url }}" target="_blank">
-                            {{ link.icon | default('🔗') }} {{ link.name }}
-                            {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
-                        </a>
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            <!-- Заглушка для кнопки "Случайная тема" (остаётся вне секций, если нужно) -->
-            <!-- <div class="random-topic-placeholder">Случайная тема (заглушка)</div> -->
-        </aside>
-        <main class="content">
-            {% if config.site.welcome_text %}
-            <div class="welcome-block">
-                {{ config.site.welcome_text | replace('
-', '<br>') | safe }}
-            </div>
-            {% endif %}
-            <div class="stats-block">
-                <h3>Статистика архива</h3> <!-- Добавим заголовок для ясности -->
-                <p>Всего сообщений: {{ total_messages }}</p>
-                <p>Всего тем: {{ total_topics }}</p>
-                <p>Самая активная тема: {{ most_active_topic }}</p>
-                <p>Версия генерации (запуск #{{ generation_run_number }})</p>
-            </div>
-        </main>
-    </div>
-    <footer class="footer">
-        <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ total_messages }}</p>
-        <p>{{ footer_text }}</p>
-    </footer>
-    <script>
-        // Мы оставим её, но удалим вызов получения даты из неё.
-        function toggleTheme() {
-            const body = document.body;
-            const currentTheme = body.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            body.setAttribute('data-theme', newTheme);
-            // Не сохраняем тему между сессиями
-        }
-    </script>
+<header class="header">
+<div class="header-title-desc"> <!-- Новый div для заголовка и описания -->
+<h1>{{ site_title }}</h1>
+<p>{{ site_description }}</p>
+</div>
+<div class="controls"> <!-- Контролы справа -->
+<!-- Переключатель темы -->
+<span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
+</div>
+</header>
+
+<!-- 🔍 Форма поиска -->
+<div class="search-box">
+  <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off">
+  <button type="submit" class="search-button">Найти</button>
+</div>
+
+{% if ticker_enabled %}
+<div class="ticker">
+<div class="ticker-content">
+{% for text in ticker_texts %}
+<span class="ticker-item">{{ text }}</span>
+&nbsp; &nbsp; &nbsp;
+{% endfor %}
+</div>
+</div>
+{% endif %}
+<div class="main-content">
+<aside class="sidebar">
+<!-- Секция "Все Темы" -->
+<div class="sidebar-section">
+<h3>Все Темы</h3>
+<ul class="topic-list">
+{% for topic in topics %}
+<li>
+<a href="{{ topic.first_page_filename }}"> <!-- Используем новое поле -->
+{{ topic.icon_emoji | default('') }} {{ topic.title }}
+<span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+</a>
+</li>
+{% endfor %}
+</ul>
+</div>
+<!-- Секция "Полезные Ссылки" -->
+<div class="sidebar-section">
+<h3>Полезные ссылки</h3>
+<ul class="useful-links">
+{% for link in useful_links %}
+<li>
+<a href="{{ link.url }}" target="_blank">
+{{ link.icon | default('🔗') }} {{ link.name }}
+{% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
+</a>
+</li>
+{% endfor %}
+</ul>
+</div>
+</aside>
+<main class="content">
+{% if config.site.welcome_text %}
+<div class="welcome-block">
+{{ config.site.welcome_text | replace('\n', '<br>') | safe }}
+</div>
+{% endif %}
+<div class="stats-block">
+<h3>Статистика архива</h3> <!-- Добавим заголовок для ясности -->
+<p>Всего сообщений: {{ total_messages }}</p>
+<p>Всего тем: {{ total_topics }}</p>
+<p>Самая активная тема: {{ most_active_topic }}</p>
+<p>Версия генерации (запуск #{{ generation_run_number }})</p>
+</div>
+</main>
+</div>
+<footer class="footer">
+<p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ total_messages }}</p>
+<p>{{ footer_text }}</p>
+</footer>
+<script>
+// Мы оставим её, но удалим вызов получения даты из неё.
+function toggleTheme() {
+const body = document.body;
+const currentTheme = body.getAttribute('data-theme');
+const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+body.setAttribute('data-theme', newTheme);
+// Не сохраняем тему между сессиями
+}
+</script>
 </body>
 </html>
