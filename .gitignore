@@ -23,3 +23,13 @@ pyvenv.cfg
 sqlite_history
 config.yaml
 tg_archive.db
+
+# файлы пойска игнорим, а директории нет
+manticore/data/*
+!manticore/data/.gitkeep
+
+manticore/logs/*
+!manticore/logs/.gitkeep
+
+manticore/binlog/*
+!manticore/binlog/.gitkeep

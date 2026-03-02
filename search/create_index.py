@@ -7,9 +7,6 @@ import requests
 from bs4 import BeautifulSoup
 
 
-# -------------------------------------------------
-# Управление таблицей
-# -------------------------------------------------
 def drop_table_if_exists(manticore_url: str, index_name: str):
     sql = f"DROP TABLE IF EXISTS {index_name}"
 
@@ -50,9 +47,6 @@ def create_table_with_morphology(manticore_url: str, index_name: str):
     print(f"🌿 Таблица `{index_name}` создана с morphology=stem_ru")
 
 
-# -------------------------------------------------
-# Парсинг HTML
-# -------------------------------------------------
 def parse_message_html_file(path: str, base_output_dir: str) -> dict:
     with open(path, "r", encoding="utf-8", errors="ignore") as f:
         soup = BeautifulSoup(f.read(), "html.parser")
@@ -95,40 +89,33 @@ def list_message_files(output_dir: str) -> list:
     return sorted(files)
 
 
-# -------------------------------------------------
-# Bulk insert
-# -------------------------------------------------
 def bulk_insert_to_manticore(docs: list, manticore_url: str, index_name: str):
-    lines = []
-
     for doc in docs:
-        lines.append(json.dumps({
-            "insert": {
-                "table": index_name,
-                "doc": doc
-            }
-        }))
+        title = doc["title"].replace("'", "\\'")
+        content = doc["content"].replace("'", "\\'")
+        relative_url = doc["relative_url"].replace("'", "\\'")
 
-    body = "\n".join(lines) + "\n"
+        sql = (
+            f"INSERT INTO {index_name} "
+            f"(title, content, relative_url) VALUES "
+            f"('{title}', '{content}', '{relative_url}')"
+        )
 
-    r = requests.post(
-        f"{manticore_url}/bulk",
-        data=body,
-        headers={"Content-Type": "application/x-ndjson"},
-        timeout=30
-    )
+        r = requests.post(
+            f"{manticore_url}/cli",
+            data=sql,
+            headers={"Content-Type": "text/plain"},
+            timeout=10
+        )
 
-    if r.status_code != 200:
-        print(f"❌ Bulk insert failed: {r.text}")
-        return False
+        if r.status_code != 200:
+            print(f"❌ Insert failed: {r.text}")
+            return False
 
     print("✅ Документы успешно загружены в Manticore")
     return True
 
 
-# -------------------------------------------------
-# Main
-# -------------------------------------------------
 def main():
     parser = argparse.ArgumentParser(
         description="Индексация HTML-сообщений в Manticore Search с морфологией"

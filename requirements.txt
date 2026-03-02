@@ -2,3 +2,6 @@ telethon
 jinja2
 pyyaml
 pillow
+requests
+flask
+beautifulsoup4

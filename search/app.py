@@ -34,7 +34,8 @@ parser.add_argument(
 args = parser.parse_known_args()[0]
 
 OUTPUT_DIR = os.path.abspath(args.output_dir)
-MANTICORE_URL = args.manticore_url.rstrip("/")
+#MANTICORE_URL = args.manticore_url.rstrip("/")
+MANTICORE_URL = os.getenv("MANTICORE_URL", "http://manticore:9308").rstrip("/")
 TEMPLATES_DIR = os.path.abspath(args.templates_dir)
 
 # -------------------------------------------------
@@ -124,7 +125,8 @@ def search():
 # -------------------------------------------------
 if __name__ == "__main__":
     app.run(
-        host="0.0.0.0",
-        port=args.port,
-        debug=True
+    host="0.0.0.0",
+    port=args.port,
+    debug=False,
+    use_reloader=False
     )
