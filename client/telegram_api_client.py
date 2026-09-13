@@ -4,7 +4,8 @@ import asyncio
 from typing import List, Dict, Any, Optional
 from telethon import TelegramClient
 from telethon.tl.types import PeerChannel, Message, User
-from telethon.tl.functions.channels import GetForumTopicsRequest
+#from telethon.tl.functions.channels import GetForumTopicsRequest
+from telethon.tl.functions.messages import GetForumTopicsRequest
 
 class TelegramAPIClient:
     """
