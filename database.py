@@ -13,7 +13,7 @@ import shutil
 import sqlite3
 from typing import Optional, Dict, Any, Set
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 MESSAGES_DDL = """
     CREATE TABLE IF NOT EXISTS messages (
@@ -24,6 +24,7 @@ MESSAGES_DDL = """
         text TEXT,
         timestamp TIMESTAMP NOT NULL,
         reply_to_msg_id INTEGER,              -- telegram id сообщения, на которое ответ
+        grouped_id INTEGER,                   -- id альбома (несколько фото одним постом)
         media_path TEXT,
         media_type TEXT CHECK(media_type IN ('photo', 'video', 'document', 'audio')),
         media_skipped_size INTEGER,           -- размер вложения, не скачанного из-за лимита
@@ -129,6 +130,13 @@ def _migrate(conn: sqlite3.Connection, db_path: str):
         conn.execute("ALTER TABLE messages ADD COLUMN media_skipped_size INTEGER")
         conn.commit()
         print("[+] Схема БД обновлена до v3 (media_skipped_size)")
+
+    columns = _table_columns(conn, "messages")
+    if 'grouped_id' not in columns:
+        conn.execute("ALTER TABLE messages ADD COLUMN grouped_id INTEGER")
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_messages_grouped ON messages(topic_id, grouped_id)")
+        conn.commit()
+        print("[+] Схема БД обновлена до v4 (grouped_id)")
 
     if version < SCHEMA_VERSION:
         conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
@@ -249,14 +257,15 @@ def save_message(conn, msg_data: Dict[str, Any], commit: bool = True):
     conn.execute("""
         INSERT INTO messages (
             telegram_id, topic_id, user_id, text, timestamp,
-            reply_to_msg_id, media_path, media_type, media_skipped_size,
+            reply_to_msg_id, grouped_id, media_path, media_type, media_skipped_size,
             poll_data, file_extension
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(telegram_id, topic_id) DO UPDATE SET
             user_id = excluded.user_id,
             text = COALESCE(excluded.text, messages.text),
             timestamp = excluded.timestamp,
             reply_to_msg_id = COALESCE(excluded.reply_to_msg_id, messages.reply_to_msg_id),
+            grouped_id = COALESCE(excluded.grouped_id, messages.grouped_id),
             media_path = COALESCE(excluded.media_path, messages.media_path),
             media_type = COALESCE(excluded.media_type, messages.media_type),
             media_skipped_size = COALESCE(excluded.media_skipped_size, messages.media_skipped_size),
@@ -269,6 +278,7 @@ def save_message(conn, msg_data: Dict[str, Any], commit: bool = True):
         msg_data.get('text'),
         msg_data['timestamp'],
         msg_data.get('reply_to_msg_id'),
+        msg_data.get('grouped_id'),
         msg_data.get('media_path'),
         msg_data.get('media_type'),
         msg_data.get('media_skipped_size'),

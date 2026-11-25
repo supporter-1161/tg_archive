@@ -93,11 +93,11 @@ class MigrationTest(unittest.TestCase):
         self.assertIsNone(rows[0][2], 'старый reply_to (id топика) не должен стать ответом')
         self.assertEqual(rows[0][3], 'media/topics/1143/a.jpg')
         self.assertEqual(rows[1][1], 0, 'NULL-топик приводится к 0')
-        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 3)
+        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 4)
         conn.close()
         self.assertTrue(os.path.exists(self.db_path + '.pre-v2.bak'))
 
-    def test_v2_to_v3_adds_skipped_size(self):
+    def test_v2_to_v4_adds_columns(self):
         conn = sqlite3.connect(self.db_path)
         conn.executescript(V2_SCHEMA)
         conn.execute("PRAGMA user_version = 2")
@@ -110,7 +110,7 @@ class MigrationTest(unittest.TestCase):
         conn = sqlite3.connect(self.db_path)
         columns = {row[1] for row in conn.execute('PRAGMA table_info(messages)')}
         self.assertIn('media_skipped_size', columns)
-        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 3)
+        self.assertEqual(conn.execute('PRAGMA user_version').fetchone()[0], 4)
         self.assertEqual(conn.execute('SELECT COUNT(*) FROM messages').fetchone()[0], 1)
         conn.close()
 
@@ -123,7 +123,7 @@ class MigrationTest(unittest.TestCase):
         version = conn.execute('PRAGMA user_version').fetchone()[0]
         conn.close()
         self.assertEqual(count, 2)
-        self.assertEqual(version, 3)
+        self.assertEqual(version, 4)
 
     def test_duplicates_blocked_with_zero_topic(self):
         self.make_v1()

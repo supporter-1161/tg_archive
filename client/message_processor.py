@@ -187,6 +187,7 @@ class MessageProcessor:
             'text': msg.text or '',
             'timestamp': msg.date.isoformat(),
             'reply_to_msg_id': self._reply_to_id(msg, topic_id),
+            'grouped_id': getattr(msg, 'grouped_id', None),
             'media_type': None,
             'media_path': None,
             'media_skipped_size': None,
