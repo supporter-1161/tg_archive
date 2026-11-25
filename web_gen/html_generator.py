@@ -20,6 +20,24 @@ class HTMLGenerator:
         self.message_template = self.jinja_env.get_template('message.html.j2')
         self.default_avatar = self._resolve_default_avatar()
 
+    @staticmethod
+    def group_messages(messages):
+        """Склеивает подряд идущие сообщения одного альбома в одну карточку."""
+        groups = []
+        current = None
+        for msg in messages:
+            gid = msg.get('grouped_id')
+            if gid and current is not None and current['grouped_id'] == gid:
+                current['messages'].append(msg)
+            else:
+                current = {'grouped_id': gid, 'messages': [msg]}
+                groups.append(current)
+        for group in groups:
+            # В ленте сообщения идут от новых к старым, внутри альбома — по порядку.
+            group['messages'].sort(key=lambda m: m['id'])
+            group['is_album'] = bool(group['grouped_id']) and len(group['messages']) > 1
+        return groups
+
     def _resolve_default_avatar(self):
         """Путь к аватарке-заглушке в терминах сгенерированного сайта.
 
@@ -119,6 +137,7 @@ class HTMLGenerator:
                     'topics': topics_list,
                     'current_topic': topic_info,
                     'messages': messages,
+                    'message_groups': self.group_messages(messages),
                     'current_page': page_num,
                     'total_pages': total_pages,
                     'page_links': range(1, total_pages + 1),

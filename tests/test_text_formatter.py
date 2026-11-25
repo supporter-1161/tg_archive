@@ -50,6 +50,29 @@ class ConverterTest(unittest.TestCase):
         self.assertNotIn('<b>не тег</b>', out)
         self.assertIn('&lt;b&gt;', out)
 
+    def test_bare_url_is_linked(self):
+        out = self.conv.convert('Статья: https://habr.com/ru/post/709204/')
+        self.assertIn('<a href="https://habr.com/ru/post/709204/"', out)
+        self.assertIn('>https://habr.com/ru/post/709204/</a>', out)
+
+    def test_bare_url_with_trailing_punctuation(self):
+        out = self.conv.convert('Смотри https://example.com/page.')
+        self.assertIn('href="https://example.com/page"', out)
+        self.assertNotIn('page."', out)
+
+    def test_url_inside_markdown_link_not_doubled(self):
+        out = self.conv.convert('[гайд](https://example.com/doc)')
+        self.assertEqual(out.count('<a '), 1)
+
+    def test_no_autolink_inside_existing_anchor(self):
+        out = self.conv.convert('[https://example.com](https://example.com)')
+        self.assertEqual(out.count('<a '), 1)
+
+    def test_url_in_code_is_still_linked(self):
+        # Код не должен ломаться, но текст остаётся текстом ссылки
+        out = self.conv.convert('`https://example.com`')
+        self.assertIn('<code>', out)
+
 
 if __name__ == '__main__':
     unittest.main()

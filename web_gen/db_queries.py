@@ -106,7 +106,7 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
     query = f"""
         SELECT m.telegram_id, m.text, m.timestamp, m.media_path, m.media_type, m.file_extension,
                u.username, u.first_name, u.last_name, u.avatar_path, m.reply_to_msg_id,
-               m.media_skipped_size
+               m.media_skipped_size, m.grouped_id
         FROM messages m
         JOIN users u ON m.user_id = u.telegram_id
         WHERE m.topic_id = ?
@@ -134,6 +134,7 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             'reply_to_msg_id': row[10],
             'media_skipped_size': row[11],
             'media_skipped_size_human': human_readable_size(row[11]) if row[11] else None,
+            'grouped_id': row[12],
         }
 
         # --- АНОНИМИЗАЦИЯ ---
@@ -171,11 +172,24 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             file_size_bytes = get_file_size_by_path(conn, full_media_path)
             message_dict['file_size_bytes'] = file_size_bytes
             message_dict['file_size_human'] = human_readable_size(file_size_bytes) if file_size_bytes else None
+
+            # Вес превью: файл уже лежит в output (копирование идёт до рендера).
+            thumb_size = None
+            thumb_rel = message_dict.get('media_thumbnail_path')
+            if thumb_rel:
+                output_dir = (config or {}).get('storage', {}).get('output_dir', 'output')
+                thumb_abs = os.path.join(output_dir, thumb_rel)
+                if os.path.exists(thumb_abs):
+                    thumb_size = os.path.getsize(thumb_abs)
+            message_dict['thumb_size_bytes'] = thumb_size
+            message_dict['thumb_size_human'] = human_readable_size(thumb_size) if thumb_size else None
         else:
             message_dict['media_original_path'] = None
             message_dict['media_thumbnail_path'] = None
             message_dict['file_size_bytes'] = None
             message_dict['file_size_human'] = None
+            message_dict['thumb_size_bytes'] = None
+            message_dict['thumb_size_human'] = None
 
         # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
         html_text = html_converter.convert(message_dict['text'])

@@ -13,11 +13,13 @@ def generate_website(config):
     # к актуальной здесь, а не падаем на отсутствующей колонке.
     init_db(db_path)
 
+    # Медиа и превью копируются ДО рендера: размер превью нужен в HTML.
+    copy_media_files(config, output_dir)
+
     html_gen = HTMLGenerator(config, db_path, output_dir)
     html_gen.generate()
 
     copy_static_resources('static', output_dir)
-    copy_media_files(config, output_dir)
     copy_avatar_files(config, output_dir)
 
     print("[+] Генерация веб-сайта завершена (HTML и файлы).")

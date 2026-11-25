@@ -14,6 +14,9 @@ from urllib.parse import urlparse
 # Разрешённые схемы ссылок. javascript:/data:/vbscript: и прочее — отклоняем.
 ALLOWED_LINK_SCHEMES = {'http', 'https', 'mailto'}
 
+# Голые ссылки: не едим закрывающие кавычки/скобки и висящую пунктуацию.
+URL_RE = re.compile(r'https?://[^\s<>"\')]+[^\s<>"\').,;:!?]')
+
 
 class TelegramToHTMLConverter:
     def __init__(self):
@@ -114,8 +117,9 @@ class TelegramToHTMLConverter:
             except Exception as e:
                 print(f"Ошибка при обработке паттерна {pattern_config['name']}: {e}")
 
-        # 3. Ссылки — со схемным allowlist'ом.
+        # 3. Ссылки: markdown-разметка и голые URL — со схемным allowlist'ом.
         result = self._convert_links(result)
+        result = self._autolink(result)
 
         # 4. Переносы строк.
         return result.replace('\n', '<br>')
@@ -133,3 +137,23 @@ class TelegramToHTMLConverter:
                     f'rel="noopener noreferrer nofollow">{label}</a>')
 
         return re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)', replace, text)
+
+    @staticmethod
+    def _autolink(text: str) -> str:
+        """Голые http(s)-ссылки в тексте — в кликабельные, но не внутри <a>."""
+        def link(match: re.Match) -> str:
+            url = match.group(0)
+            parsed = urlparse(html.unescape(url))
+            if parsed.scheme.lower() not in ALLOWED_LINK_SCHEMES:
+                return url
+            return (f'<a href="{url}" target="_blank" '
+                    f'rel="noopener noreferrer nofollow">{url}</a>')
+
+        parts = []
+        pos = 0
+        for anchor in re.finditer(r'<a\b[^>]*>.*?</a>', text, flags=re.DOTALL | re.IGNORECASE):
+            parts.append(URL_RE.sub(link, text[pos:anchor.start()]))
+            parts.append(anchor.group(0))
+            pos = anchor.end()
+        parts.append(URL_RE.sub(link, text[pos:]))
+        return ''.join(parts)

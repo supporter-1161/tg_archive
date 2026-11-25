@@ -12,12 +12,11 @@
         <h1>{{ site_title }}</h1>
         <p>{{ site_description }}</p>
     </div>
+    <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
+        <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
+        <button type="submit" class="search-button">Найти</button>
+    </form>
 </header>
-
-<form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
-    <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
-    <button type="submit" class="search-button">Найти</button>
-</form>
 
 {% if ticker_enabled %}
 <div class="ticker">
@@ -45,7 +44,7 @@
 </ul>
 </div>
 <div class="sidebar-section">
-<h3>Полезные ссылки</h3>
+<h3>{{ config.get('ui', {}).get('useful_links_title', 'Полезные ссылки') }}</h3>
 <ul class="useful-links">
 {% for link in useful_links %}
 <li>

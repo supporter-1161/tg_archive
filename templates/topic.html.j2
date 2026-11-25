@@ -8,6 +8,45 @@
 <link rel="stylesheet" href="../static/css/topic.css">
 </head>
 <body data-theme="{{ default_theme }}">
+
+{% macro card_header(m, config, default_avatar) %}
+<div class="message-header">
+{% if config.ui.get('generate_message_pages', True) %}
+<a class="message-id" href="../messages/message_{{ m.id }}.html">#{{ m.id }}</a>
+{% else %}
+<span class="message-id">#{{ m.id }}</span>
+{% endif %}
+{% if m.reply_to_msg_id %}
+<a class="message-reply" href="../messages/message_{{ m.reply_to_msg_id }}.html">ответ на #{{ m.reply_to_msg_id }}</a>
+{% endif %}
+{% if m.author_avatar_path and m.author_avatar_path.startswith('avatars/') %}
+<img src="../{{ m.author_avatar_path }}" alt="Avatar" class="message-author-icon">
+{% elif default_avatar %}
+<img src="../{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
+{% else %}
+<div class="message-author-icon">👤</div>
+{% endif %}
+<span class="message-author-name">{{ m.author_first_name }}{% if m.author_last_name %} {{ m.author_last_name }}{% endif %}{% if m.author_username %} (@{{ m.author_username }}){% endif %}</span>
+<span class="message-timestamp">{{ m.timestamp }}</span>
+</div>
+{% endmacro %}
+
+{% macro album_media(m) %}
+{% if m.media_type == 'photo' and m.media_thumbnail_path %}
+<figure class="album-item">
+<a href="../{{ m.media_original_path }}" target="_blank">
+<img src="../{{ m.media_thumbnail_path }}" alt="Фото" loading="lazy">
+</a>
+<figcaption>{% if m.thumb_size_human %}{{ m.thumb_size_human }}{% endif %}{% if m.thumb_size_human and m.file_size_human %} → {% endif %}{% if m.file_size_human %}{{ m.file_size_human }}{% endif %}</figcaption>
+</figure>
+{% elif m.media_original_path %}
+<div class="album-item album-file">
+<a href="../{{ m.media_original_path }}" target="_blank" download>Файл: {{ m.media_original_path.split('/')[-1] }}{% if m.file_extension %} ({{ m.file_extension | upper }}){% endif %}</a>
+{% if m.file_size_human %}<figcaption>{{ m.file_size_human }}</figcaption>{% endif %}
+</div>
+{% endif %}
+{% endmacro %}
+
 <header class="header">
     <div class="header-title-desc">
         <h1>{{ site_title }}</h1>
@@ -46,7 +85,7 @@
 </ul>
 </div>
 <div class="sidebar-section">
-<h3>Полезные ссылки</h3>
+<h3>{{ config.get('ui', {}).get('useful_links_title', 'Полезные ссылки') }}</h3>
 <ul class="useful-links">
 {% for link in useful_links %}
 <li>
@@ -92,29 +131,25 @@
 {% endif %}
 
 <div class="messages-list">
-{% for message in messages %}
-<div class="message-card" id="m{{ message.id }}">
-<div class="message-header">
-{% if config.ui.get('generate_message_pages', True) %}
-<a class="message-id" href="../messages/message_{{ message.id }}.html">#{{ message.id }}</a>
-{% else %}
-<span class="message-id">#{{ message.id }}</span>
-{% endif %}
-{% if message.reply_to_msg_id %}
-<a class="message-reply" href="../messages/message_{{ message.reply_to_msg_id }}.html">ответ на #{{ message.reply_to_msg_id }}</a>
-{% endif %}
-{% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
-<img src="../{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
-{% elif default_avatar %}
-<img src="../{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
-{% else %}
-<div class="message-author-icon">👤</div>
-{% endif %}
-<span class="message-author-name">
-{{ message.author_first_name }}{% if message.author_last_name %} {{ message.author_last_name }}{% endif %}{% if message.author_username %} (@{{ message.author_username }}){% endif %}
-</span>
-<span class="message-timestamp">{{ message.timestamp }}</span>
+{% for group in message_groups %}
+{% if group.is_album %}
+{% set lead = group.messages[0] %}
+<div class="message-card" id="m{{ lead.id }}">
+{{ card_header(lead, config, default_avatar) }}
+<div class="album-grid">
+{% for m in group.messages %}{{ album_media(m) }}{% endfor %}
 </div>
+{% for m in group.messages if m.media_skipped_size_human %}
+<div class="media-skipped">Вложение не сохранено — {{ m.media_skipped_size_human }}: превышает лимит архива.</div>
+{% endfor %}
+{% for m in group.messages if m.text %}
+<div class="message-text">{{ m.text | safe }}</div>
+{% endfor %}
+</div>
+{% else %}
+{% set message = group.messages[0] %}
+<div class="message-card" id="m{{ message.id }}">
+{{ card_header(message, config, default_avatar) }}
 
 {% if message.media_skipped_size_human %}
 <div class="media-skipped">
@@ -124,25 +159,18 @@
 
 {% if message.media_thumbnail_path or (message.media_original_path and message.media_type != 'photo') %}
 <div class="message-media">
-{% if message.file_size_human %}
-<div class="file-size">{{ message.file_size_human }}</div>
-{% endif %}
-
 {% if message.media_type == 'photo' %}
-<a href="../{{ message.media_original_path }}" target="_blank">
-<img src="../{{ message.media_thumbnail_path }}" alt="Photo">
+<a class="media-photo" href="../{{ message.media_original_path }}" target="_blank">
+<img src="../{{ message.media_thumbnail_path }}" alt="Фото" loading="lazy">
 </a>
 {% elif message.media_type == 'video' %}
-<video controls><source src="../{{ message.media_original_path }}" type="video/mp4">Видео не поддерживается.</video>
-{% elif message.media_type in ('document', 'audio') %}
-<a href="../{{ message.media_original_path }}" target="_blank" download>
-Файл: {{ message.media_original_path.split('/')[-1] }} ({{ message.file_extension | upper }})
-</a>
+<video controls preload="none"><source src="../{{ message.media_original_path }}" type="video/mp4">Видео не поддерживается.</video>
 {% else %}
 <a href="../{{ message.media_original_path }}" target="_blank" download>
-Файл: {{ message.media_original_path.split('/')[-1] }}
+Файл: {{ message.media_original_path.split('/')[-1] }}{% if message.file_extension %} ({{ message.file_extension | upper }}){% endif %}
 </a>
 {% endif %}
+<div class="file-size">{% if message.thumb_size_human %}превью {{ message.thumb_size_human }}{% endif %}{% if message.thumb_size_human and message.file_size_human %} · {% endif %}{% if message.file_size_human %}оригинал {{ message.file_size_human }}{% endif %}</div>
 </div>
 {% endif %}
 
@@ -150,6 +178,7 @@
 <div class="message-text">{{ message.text | safe }}</div>
 {% endif %}
 </div>
+{% endif %}
 {% endfor %}
 </div>
 
