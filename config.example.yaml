@@ -1,0 +1,56 @@
+# Пример конфигурации. Скопируйте в config.yaml и заполните своими значениями.
+# config.yaml в git не попадает (там api_hash и данные).
+
+telegram:
+  api_id: "1234567"                 # https://my.telegram.org/apps
+  api_hash: "0123456789abcdef0123456789abcdef"
+  session_name: "tg_archive"        # файл сессии появится рядом после `login`
+  group_id: -1001234567890          # id форум-группы; формат -100... или «сырой» -1234567890
+
+storage:
+  database: "tg_archive.db"
+  media_dir: "media"
+  avatars_dir: "avatars"
+  output_dir: "output"
+  # Скачивать файлы больше N МБ? 0 = без лимита. В форум-группах попадаются
+  # многогигабайтные многотомные архивы — для веб-архива они обычно не нужны.
+  max_media_size_mb: 50
+
+site:
+  title: "Анонимный архив"
+  description: "Текст, ссылки и файлы без телеграма"
+  welcome_text: "Добро пожаловать в архив.\nЧитайте, ищите, качайте."
+  footer_text: "Архив собран автоматически"
+
+ui:
+  theme: "auto"          # dark | light | auto (auto = системная тема, без JS)
+  messages_per_page: 50
+  messages_order: "newest_first"   # newest_first | oldest_first
+  topics_ranking: "by_messages"    # by_messages | alphabetical
+  default_avatar_path: "media/default_avatar.jpg"
+  show_top_pagination: true
+  generate_message_pages: true
+  media_max_width: 1000            # ширина превью; 0/пусто = без превью
+  privacy:
+    mode: "anonymous"              # normal | anonymous
+    anonymous_nickname: "Аноним"
+
+# Иконки для топиков, если их нет в самом Telegram
+topic_icons:
+  1143: "🔥"
+
+ticker:
+  enabled: false
+  texts: []
+  speed: 50
+  delay: 5
+
+useful_links: []
+
+# Поиск: Manticore + Flask за nginx
+search:
+  enabled: true
+  url: "/search"                   # куда отправляет форма поиска
+  manticore_url: "http://manticore:9308"   # из docker-сети; локально http://localhost:9308
+  index_name: "html_index"
+  per_page: 20

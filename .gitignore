@@ -33,3 +33,6 @@ manticore/logs/*
 
 manticore/binlog/*
 !manticore/binlog/.gitkeep
+
+# Бэкапы базы при миграциях
+tg_archive.db.*
