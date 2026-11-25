@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 import math
 from database import get_file_size_by_path
+from utils import human_readable_size
 from web_gen.text_formatter import TelegramToHTMLConverter
 
 html_converter = TelegramToHTMLConverter()
@@ -62,7 +63,7 @@ def get_topics(conn, ranking_method="by_messages", config=None):
         topics.append({
             'id': topic_telegram_id,
             'title': row[1],
-            'icon_emoji': final_icon,
+            'icon_emoji': final_icon or '',
             'message_count': row[3]
         })
     print(f"[DEBUG] Найдено тем: {len(topics)}")
@@ -89,7 +90,7 @@ def get_topic_info(conn, topic_telegram_id, config=None):
         return {
             'id': topic_telegram_id,
             'title': row[0],
-            'icon_emoji': final_icon,
+            'icon_emoji': final_icon or '',
             'total_messages': row[2] or 0,
             'first_message_time': datetime.fromisoformat(row[3]).strftime('%Y-%m-%d %H:%M:%S') if row[3] else "N/A",
             'last_message_time': datetime.fromisoformat(row[4]).strftime('%Y-%m-%d %H:%M:%S') if row[4] else "N/A"
@@ -103,7 +104,9 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
     offset = (page - 1) * per_page
     order_sql = "DESC" if order == "newest_first" else "ASC"
     query = f"""
-        SELECT m.telegram_id, m.text, m.timestamp, m.media_path, m.media_type, m.file_extension, u.username, u.first_name, u.last_name, u.avatar_path
+        SELECT m.telegram_id, m.text, m.timestamp, m.media_path, m.media_type, m.file_extension,
+               u.username, u.first_name, u.last_name, u.avatar_path, m.reply_to_msg_id,
+               m.media_skipped_size
         FROM messages m
         JOIN users u ON m.user_id = u.telegram_id
         WHERE m.topic_id = ?
@@ -127,7 +130,10 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
             'author_username': row[6],
             'author_first_name': row[7],
             'author_last_name': row[8],
-            'author_avatar_path': row[9]
+            'author_avatar_path': row[9],
+            'reply_to_msg_id': row[10],
+            'media_skipped_size': row[11],
+            'media_skipped_size_human': human_readable_size(row[11]) if row[11] else None,
         }
 
         # --- АНОНИМИЗАЦИЯ ---
@@ -164,10 +170,12 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
 
             file_size_bytes = get_file_size_by_path(conn, full_media_path)
             message_dict['file_size_bytes'] = file_size_bytes
+            message_dict['file_size_human'] = human_readable_size(file_size_bytes) if file_size_bytes else None
         else:
             message_dict['media_original_path'] = None
             message_dict['media_thumbnail_path'] = None
             message_dict['file_size_bytes'] = None
+            message_dict['file_size_human'] = None
 
         # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
         html_text = html_converter.convert(message_dict['text'])

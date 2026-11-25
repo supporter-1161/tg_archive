@@ -149,3 +149,53 @@
 .top-pagination {
     margin-bottom: 1rem; /* Отступ снизу перед началом сообщений */
 }
+
+/* --- Тема из настроек системы (ui.theme: auto), без JS --- */
+@media (prefers-color-scheme: dark) {
+    [data-theme="auto"] {
+        --message-bg: #343a40;
+        --message-border: #454d55;
+        --media-link-bg: #495057;
+        --media-link-color: inherit;
+    }
+}
+
+/* --- Длинные URL и код не должны растягивать страницу --- */
+.message-text {
+    overflow-wrap: anywhere;
+}
+
+.message-text a {
+    overflow-wrap: anywhere;
+}
+
+.message-text code {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.message-text pre {
+    max-width: 100%;
+    overflow-x: auto;
+    padding: 0.5rem;
+    background-color: var(--header-bg);
+    border-radius: 4px;
+}
+
+/* Длинные имена файлов в ссылках на вложения */
+.message-media a {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+/* --- Вложение, не скачанное из-за лимита размера --- */
+.media-skipped {
+    margin: 0.5rem 0;
+    padding: 0.4rem 0.6rem;
+    border-left: 3px solid var(--border-color);
+    background-color: var(--header-bg);
+    color: gray;
+    font-size: 0.85em;
+    border-radius: 0 4px 4px 0;
+}

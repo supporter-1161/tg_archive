@@ -1,4 +1,3 @@
-<!-- templates/topic.html.j2 -->
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -7,57 +6,17 @@
 <title>{{ current_topic.title }} - {{ site_title }}</title>
 <link rel="stylesheet" href="../static/css/style.css">
 <link rel="stylesheet" href="../static/css/topic.css">
-<style>
-/* Стили для поиска — встроены прямо в шаблон */
-.search-box {
-margin: 0.5rem 0;
-display: flex;
-gap: 0.5rem;
-}
-.search-input {
-flex: 1;
-padding: 0.4rem 0.6rem;
-font-size: 0.95em;
-border: 1px solid var(--border-color);
-border-radius: 4px;
-background-color: var(--bg-color);
-color: var(--text-color);
-}
-.search-input:focus {
-outline: 2px solid var(--accent-color);
-}
-.search-button {
-padding: 0.4rem 0.8rem;
-background-color: var(--accent-color);
-color: white;
-border: none;
-border-radius: 4px;
-cursor: pointer;
-font-size: 0.95em;
-}
-.search-button:hover {
-opacity: 0.9;
-}
-</style>
 </head>
 <body data-theme="{{ default_theme }}">
 <header class="header">
-<div class="header-title-desc">
-<h1>{{ site_title }}</h1>
-<p>{{ site_description }}</p>
-</div>
-
-<!-- 🔍 Форма поиска (внутри header, под заголовком) -->
-<form action="/search" method="get" style="margin-top: 0.5rem; width: 100%; max-width: 400px;">
-  <div class="search-box">
-    <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
-    <button type="submit" class="search-button">Найти</button>
-  </div>
-</form>
-
-<div class="controls">
-<span class="theme-toggle" onclick="toggleTheme()">☀️/🌙</span>
-</div>
+    <div class="header-title-desc">
+        <h1>{{ site_title }}</h1>
+        <p>{{ site_description }}</p>
+    </div>
+    <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
+        <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
+        <button type="submit" class="search-button">Найти</button>
+    </form>
 </header>
 
 {% if ticker_enabled %}
@@ -78,9 +37,9 @@ opacity: 0.9;
 <ul class="topic-list">
 {% for topic in topics %}
 <li>
-<a href="{% if topic.id == current_topic.id %}#{% else %}../topics/topic_{{ topic.id }}_page_1.html{% endif %}">
+<a href="{% if topic.id == current_topic.id %}#{% else %}/topics/topic_{{ topic.id }}_page_1.html{% endif %}">
 {{ topic.icon_emoji | default('') }} {{ topic.title }}
-<span style="font-size: 0.8em; color: gray;">({{ topic.message_count }})</span>
+<span class="count">({{ topic.message_count }})</span>
 </a>
 </li>
 {% endfor %}
@@ -91,7 +50,7 @@ opacity: 0.9;
 <ul class="useful-links">
 {% for link in useful_links %}
 <li>
-<a href="{{ link.url }}" target="_blank">
+<a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
 {{ link.icon | default('🔗') }} {{ link.name }}
 {% if link.description %}<br><small>{{ link.description }}</small>{% endif %}
 </a>
@@ -114,7 +73,6 @@ opacity: 0.9;
 Показ: {% if show_order_label %}от новых к старым{% else %}от старых к новым{% endif %}
 </div>
 
-<!-- Верхняя пагинация -->
 {% if total_pages > 1 and config.ui.get('show_top_pagination', false) %}
 <div class="pagination top-pagination">
 {% if current_page > 1 %}
@@ -135,18 +93,22 @@ opacity: 0.9;
 
 <div class="messages-list">
 {% for message in messages %}
-<div class="message-card">
+<div class="message-card" id="m{{ message.id }}">
 <div class="message-header">
-<a href="../messages/message_{{ message.id }}.html" style="text-decoration: none; color: gray; margin-right: 0.5rem;">#{{ message.id }}</a>
+{% if config.ui.get('generate_message_pages', True) %}
+<a class="message-id" href="../messages/message_{{ message.id }}.html">#{{ message.id }}</a>
+{% else %}
+<span class="message-id">#{{ message.id }}</span>
+{% endif %}
+{% if message.reply_to_msg_id %}
+<a class="message-reply" href="../messages/message_{{ message.reply_to_msg_id }}.html">ответ на #{{ message.reply_to_msg_id }}</a>
+{% endif %}
 {% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
 <img src="../{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
-{% else %}
-{% set default_avatar = config.get('ui', {}).get('default_avatar_path', '') %}
-{% if default_avatar %}
+{% elif default_avatar %}
 <img src="../{{ default_avatar }}" alt="Default Avatar" class="message-author-icon">
 {% else %}
 <div class="message-author-icon">👤</div>
-{% endif %}
 {% endif %}
 <span class="message-author-name">
 {{ message.author_first_name }}{% if message.author_last_name %} {{ message.author_last_name }}{% endif %}{% if message.author_username %} (@{{ message.author_username }}){% endif %}
@@ -154,21 +116,16 @@ opacity: 0.9;
 <span class="message-timestamp">{{ message.timestamp }}</span>
 </div>
 
+{% if message.media_skipped_size_human %}
+<div class="media-skipped">
+Вложение не сохранено — {{ message.media_skipped_size_human }}{% if message.file_extension %} ({{ message.file_extension | upper }}){% endif %}: превышает лимит архива.
+</div>
+{% endif %}
+
 {% if message.media_thumbnail_path or (message.media_original_path and message.media_type != 'photo') %}
 <div class="message-media">
-{% if message.file_size_bytes %}
-<div class="file-size" style="color: gray; font-size: 0.8em;">
-<script>
-function humanReadableSize(bytes) {
-if (bytes === 0) return '0 B';
-const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
-const i = parseInt(Math.floor(Math.log(bytes) / Math.log(1024)));
-if (i === 0) return bytes + ' ' + sizes[i];
-return (bytes / Math.pow(1024, i)).toFixed(2) + ' ' + sizes[i];
-}
-document.write(humanReadableSize({{ message.file_size_bytes }}));
-</script>
-</div>
+{% if message.file_size_human %}
+<div class="file-size">{{ message.file_size_human }}</div>
 {% endif %}
 
 {% if message.media_type == 'photo' %}
@@ -196,7 +153,6 @@ document.write(humanReadableSize({{ message.file_size_bytes }}));
 {% endfor %}
 </div>
 
-<!-- Нижняя пагинация -->
 {% if total_pages > 1 %}
 <div class="pagination">
 {% if current_page > 1 %}
@@ -219,16 +175,7 @@ document.write(humanReadableSize({{ message.file_size_bytes }}));
 
 <footer class="footer">
 <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ current_topic.total_messages }}</p>
-<p>{{ footer_text }}</p>
+{% if footer_text %}<p>{{ footer_text }}</p>{% endif %}
 </footer>
-
-<script>
-function toggleTheme() {
-const body = document.body;
-const currentTheme = body.getAttribute('data-theme');
-const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-body.setAttribute('data-theme', newTheme);
-}
-</script>
 </body>
 </html>

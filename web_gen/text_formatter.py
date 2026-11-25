@@ -1,6 +1,19 @@
 # web_gen/text_formatter.py
+"""Telegram-разметка -> безопасный HTML.
+
+Важно: текст сообщения экранируется ДО применения markdown-паттернов.
+Telegram отдаёт обычный текст, поэтому любой ``<script>`` в сообщении —
+это попытка stored XSS на анонимном сайте. Наружу мы отдаём только те
+теги, которые породили сами.
+"""
+import html
 import re
-from typing import Dict, List, Callable
+from typing import Dict, List
+from urllib.parse import urlparse
+
+# Разрешённые схемы ссылок. javascript:/data:/vbscript: и прочее — отклоняем.
+ALLOWED_LINK_SCHEMES = {'http', 'https', 'mailto'}
+
 
 class TelegramToHTMLConverter:
     def __init__(self):
@@ -14,73 +27,63 @@ class TelegramToHTMLConverter:
                 'pattern': r'\*\*__(.*?)__\*\*',
                 'replacement': r'<b><i>\1</i></b>',
                 'description': 'Жирный курсив',
-                'flags': re.DOTALL # <-- Добавлен флаг
+                'flags': re.DOTALL,
             },
             {
                 'name': 'bold',
                 'pattern': r'\*\*(.*?)\*\*',
                 'replacement': r'<b>\1</b>',
                 'description': 'Жирный текст',
-                'flags': re.DOTALL # <-- Добавлен флаг
+                'flags': re.DOTALL,
             },
             {
                 'name': 'italic',
                 'pattern': r'__(.*?)__',
                 'replacement': r'<i>\1</i>',
                 'description': 'Курсивный текст',
-                'flags': re.DOTALL # <-- Добавлен флаг
+                'flags': re.DOTALL,
             },
             {
                 'name': 'strikethrough_bold',
                 'pattern': r'~~\*\*(.*?)\*\*~~',
                 'replacement': r'<s><b>\1</b></s>',
                 'description': 'Зачеркнутый жирный текст',
-                'flags': re.DOTALL # <-- Добавлен флаг
+                'flags': re.DOTALL,
             },
             {
                 'name': 'strikethrough',
                 'pattern': r'~~(.*?)~~',
                 'replacement': r'<s>\1</s>',
                 'description': 'Зачеркнутый текст',
-                'flags': re.DOTALL # <-- Добавлен флаг
-            },
-            {
-                'name': 'inline_code',
-                'pattern': r'`(.*?)`',
-                'replacement': r'<code>\1</code>',
-                'description': 'Моноширинный текст (inline code)',
-                'flags': re.DOTALL # <-- Добавлен флаг
+                'flags': re.DOTALL,
             },
             {
                 'name': 'code_block',
                 'pattern': r'```(.*?)```',
                 'replacement': r'<pre><code>\1</code></pre>',
                 'description': 'Блок кода',
-                'flags': re.DOTALL
+                'flags': re.DOTALL,
             },
             {
-                'name': 'link',
-                'pattern': r'\[(.*?)\]\((.*?)\)',
-                'replacement': r'<a href="\2">\1</a>',
-                'description': 'Ссылка'
-                # link оставляем без DOTALL, так как в URL \n быть не должно
-            }
+                'name': 'inline_code',
+                'pattern': r'`(.*?)`',
+                'replacement': r'<code>\1</code>',
+                'description': 'Моноширинный текст (inline code)',
+                'flags': re.DOTALL,
+            },
         ]
 
     def add_pattern(self, name: str, pattern: str, replacement: str,
-                   description: str = "", flags: int = 0) -> None:
-        """Добавляет новый паттерн форматирования"""
-        new_pattern = {
+                    description: str = "", flags: int = 0) -> None:
+        self.patterns.append({
             'name': name,
             'pattern': pattern,
             'replacement': replacement,
             'description': description,
-            'flags': flags
-        }
-        self.patterns.append(new_pattern)
+            'flags': flags,
+        })
 
     def remove_pattern(self, name: str) -> bool:
-        """Удаляет паттерн по имени"""
         for i, pattern in enumerate(self.patterns):
             if pattern['name'] == name:
                 self.patterns.pop(i)
@@ -88,30 +91,45 @@ class TelegramToHTMLConverter:
         return False
 
     def get_patterns_info(self) -> List[Dict]:
-        """Возвращает информацию о всех паттернах"""
-        return [{'name': p['name'], 'description': p['description']}
-                for p in self.patterns]
+        return [{'name': p['name'], 'description': p['description']} for p in self.patterns]
+
+    # --- конвертация -------------------------------------------------------
 
     def convert(self, text: str) -> str:
-        """Конвертирует Telegram-форматирование в HTML"""
         if not text:
             return text
 
-        result = text
+        # 1. Экранируем всё пользовательское содержимое.
+        result = html.escape(text)
 
+        # 2. Разметка Telegram.
         for pattern_config in self.patterns:
-            pattern = pattern_config['pattern']
-            replacement = pattern_config['replacement']
-            flags = pattern_config.get('flags', 0)
-
             try:
-                result = re.sub(pattern, replacement, result, flags=flags)
+                result = re.sub(
+                    pattern_config['pattern'],
+                    pattern_config['replacement'],
+                    result,
+                    flags=pattern_config.get('flags', 0),
+                )
             except Exception as e:
                 print(f"Ошибка при обработке паттерна {pattern_config['name']}: {e}")
-                continue
 
-        # Обработка переносов строк
-        result = result.replace('\n', '<br>')
+        # 3. Ссылки — со схемным allowlist'ом.
+        result = self._convert_links(result)
 
-        return result
+        # 4. Переносы строк.
+        return result.replace('\n', '<br>')
 
+    @staticmethod
+    def _convert_links(text: str) -> str:
+        """[текст](url) -> <a>, только для http/https/mailto."""
+
+        def replace(match: re.Match) -> str:
+            label, raw_url = match.group(1), match.group(2).strip()
+            parsed = urlparse(html.unescape(raw_url))
+            if parsed.scheme.lower() not in ALLOWED_LINK_SCHEMES:
+                return match.group(0)
+            return (f'<a href="{raw_url}" target="_blank" '
+                    f'rel="noopener noreferrer nofollow">{label}</a>')
+
+        return re.sub(r'\[([^\]]+)\]\(([^)\s]+)\)', replace, text)

@@ -18,6 +18,20 @@ class HTMLGenerator:
         self.index_template = self.jinja_env.get_template('index.html.j2')
         self.topic_template = self.jinja_env.get_template('topic.html.j2')
         self.message_template = self.jinja_env.get_template('message.html.j2')
+        self.default_avatar = self._resolve_default_avatar()
+
+    def _resolve_default_avatar(self):
+        """Путь к аватарке-заглушке в терминах сгенерированного сайта.
+
+        Медиа публикуются в media/original/, поэтому настроенный
+        ``media/default_avatar.jpg`` превращается в ``media/original/default_avatar.jpg``.
+        """
+        raw = (self.config.get('ui') or {}).get('default_avatar_path')
+        if not raw:
+            return None
+        if raw.startswith('media/'):
+            return 'media/original/' + raw[len('media/'):]
+        return raw
 
     def generate(self):
         print(f"[*] Генерация HTML веб-сайта в '{self.output_dir}'...")
@@ -110,6 +124,7 @@ class HTMLGenerator:
                     'page_links': range(1, total_pages + 1),
                     'messages_order': order,
                     'show_order_label': order == 'newest_first',
+                    'default_avatar': self.default_avatar,
                     'config': self.config,
                     'generation_date': generation_date,
                     'generation_run_number': new_run_count
@@ -134,6 +149,7 @@ class HTMLGenerator:
                         'topics': topics_list,
                         'current_topic': topic_info,
                         'message': msg,
+                        'default_avatar': self.default_avatar,
                         'config': self.config,
                         'generation_date': generation_date,
                         'generation_run_number': new_run_count
