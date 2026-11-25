@@ -1,0 +1,27 @@
+# Данные и артефакты не должны попадать в образ
+.git
+.gitignore
+.dockerignore
+
+lib/
+lib64
+bin/
+include/
+pyvenv.cfg
+__pycache__/
+*.pyc
+
+media/
+avatars/
+output/
+manticore/data/
+manticore/logs/
+manticore/binlog/
+
+tg_archive.db
+tg_archive.db.*
+*.session
+config.yaml
+config.yaml.bak
+
+tests/

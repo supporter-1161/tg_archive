@@ -17,8 +17,11 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Копируем приложение
 COPY . .
 
+# Непривилегированный пользователь для сервисов, которым не нужна запись в /app
+RUN useradd --no-create-home --uid 10001 --shell /usr/sbin/nologin appuser
+
 # Создаем директории для данных
 RUN mkdir -p /data/db /data/media /data/avatars /data/output
 
-# По умолчанию - интерактивный режим
+# По умолчанию - интерактивный режим (CLI синхронизации/генерации)
 CMD ["bash"]

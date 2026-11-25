@@ -1,12 +1,11 @@
-version: "3.9"
-
 services:
   manticore:
     image: manticoresearch/manticore:latest
     container_name: tg-archive-manticore
     ports:
-      - "9308:9308"
-      - "9306:9306"
+      # Только localhost: у Manticore нет аутентификации, наружу его нельзя.
+      - "127.0.0.1:9308:9308"
+      - "127.0.0.1:9306:9306"
     #volumes:
       #- manticore-data:/var/lib/manticore/data
       #- manticore-logs:/var/log/manticore
@@ -35,9 +34,10 @@ services:
     build: .
     container_name: tg-archive-cli
     volumes:
-      - ./data:/data
-      - ./config.yaml:/app/config.yaml:ro
+      # Весь проект целиком: конфиг использует относительные пути (tg_archive.db,
+      # media/, output/), поэтому данные должны лежать рядом с кодом.
       - .:/app
+      - ./config.yaml:/app/config.yaml:ro
     working_dir: /app
     environment:
       - PYTHONUNBUFFERED=1
@@ -54,20 +54,28 @@ services:
     container_name: tg-archive-search
     environment:
         - MANTICORE_URL=http://manticore:9308
-    command: >
-        sh -c "
-            until curl -f http://manticore:9308/cli -d 'SHOW TABLES'; do
-            echo 'Waiting for Manticore...';
-            sleep 2;
-            done;
-            python -m search.app --output-dir /data/output --port 5000
-        "
+        - TG_ARCHIVE_CONFIG=/app/config.yaml
+    command: ["gunicorn", "--bind", "0.0.0.0:5000", "--workers", "2", "--threads", "4",
+              "--timeout", "20", "--graceful-timeout", "10", "--access-logfile", "-",
+              "search.app:app"]
+    working_dir: /app
     volumes:
-      - ./data/output:/data/output:ro
-      - .:/app
+      - .:/app:ro
+    user: "10001:10001"
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
     depends_on:
       manticore:
         condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     restart: unless-stopped
     networks:
       - tg-archive-net
@@ -76,7 +84,9 @@ services:
     image: nginx:alpine
     container_name: tg-archive-web
     ports:
-      - "8080:80"
+      # Наружу сайт выставляется через I2P-туннель или отдельный reverse-proxy.
+      # Публичный IP:порт здесь открывать не нужно.
+      - "127.0.0.1:8080:80"
     volumes:
       - ./output:/usr/share/nginx/html:ro
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
