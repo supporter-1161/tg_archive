@@ -24,6 +24,7 @@ site:
 
 ui:
   theme: "auto"          # dark | light | auto (auto = системная тема, без JS)
+  useful_links_title: "Полезные ссылки"   # заголовок блока ссылок в сайдбаре
   messages_per_page: 50
   messages_order: "newest_first"   # newest_first | oldest_first
   topics_ranking: "by_messages"    # by_messages | alphabetical
