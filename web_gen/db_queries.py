@@ -5,6 +5,7 @@ import math
 from database import get_file_size_by_path
 from utils import human_readable_size
 from web_gen.text_formatter import TelegramToHTMLConverter
+from web_gen.text_filters import load_rules, clean_text
 
 html_converter = TelegramToHTMLConverter()
 
@@ -182,6 +183,14 @@ def _format_message_row(conn, row, config=None):
         message_dict['file_size_human'] = None
         message_dict['thumb_size_bytes'] = None
         message_dict['thumb_size_human'] = None
+
+    # --- ВЫРЕЗАЕМ МУСОР (реклама, призывы подписаться) ---
+    filters_cfg = (config or {}).get('filters', {}) or {}
+    message_dict['text'] = clean_text(
+        message_dict['text'],
+        load_rules(filters_cfg.get('file') or ''),
+        filters_cfg.get('remove_separators', True),
+    )
 
     # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
     message_dict['text'] = html_converter.convert(message_dict['text'])
