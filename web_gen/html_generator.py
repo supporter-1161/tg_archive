@@ -65,15 +65,19 @@ class HTMLGenerator:
             return 'media/original/' + raw[len('media/'):]
         return raw
 
-    def _write_topics_json(self, topics_list):
-        """Список тем для страницы поиска (Flask читает его из output)."""
-        data = [{
-            'id': t['id'],
-            'title': t['title'],
-            'icon_emoji': t['icon_emoji'] or '',
-            'message_count': t['message_count'],
-            'url': f"/topics/topic_{t['id']}_page_1.html",
-        } for t in topics_list]
+    def _write_topics_json(self, topics_list, generated_at=None, show_update_time=True):
+        """Список тем и метаданные генерации для страницы поиска (Flask читает из output)."""
+        data = {
+            'generated_at': generated_at,
+            'show_update_time': bool(show_update_time) if generated_at else False,
+            'topics': [{
+                'id': t['id'],
+                'title': t['title'],
+                'icon_emoji': t['icon_emoji'] or '',
+                'message_count': t['message_count'],
+                'url': f"/topics/topic_{t['id']}_page_1.html",
+            } for t in topics_list],
+        }
         path = os.path.join(self.output_dir, 'topics.json')
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=1)
@@ -101,7 +105,7 @@ class HTMLGenerator:
         topics_list = get_topics(conn, self.config.get('ui', {}).get('topics_ranking', 'by_messages'), config=self.config)
         for topic in topics_list:
             topic['first_page_filename'] = f"topics/topic_{topic['id']}_page_1.html"
-        self._write_topics_json(topics_list)
+        self._write_topics_json(topics_list, generation_date, show_update_time)
 
         index_context = {
             'site_title': self.config.get('site', {}).get('title', 'Telegram Archive'),

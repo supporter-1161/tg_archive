@@ -101,7 +101,13 @@ def create_app() -> Flask:
         ext = os.path.splitext(banner_cfg['path'])[1].lower() or '.jpg'
         banner = {'url': f'/banner{ext}', 'alt': banner_cfg.get('alt', '')}
 
-    topics_cache = {'mtime': None, 'data': []}
+    topics_cache = {'mtime': None, 'topics': [], 'generated_at': '', 'show_update_time': False}
+
+    # Версия статики для кеш-бастинга: обновляется вместе с CSS.
+    try:
+        static_v = int(os.path.getmtime(os.path.join(output_dir, 'static', 'css', 'style.css')))
+    except OSError:
+        static_v = 0
 
     def load_topics():
         """Список тем из topics.json, который пишет генератор (кэш по mtime)."""
@@ -109,20 +115,26 @@ def create_app() -> Flask:
         try:
             mtime = os.path.getmtime(path)
         except OSError:
-            return []
+            return topics_cache['topics']
         if topics_cache['mtime'] != mtime:
             try:
                 with open(path, encoding='utf-8') as f:
-                    topics_cache['data'] = json.load(f)
+                    data = json.load(f)
+                if isinstance(data, dict):
+                    topics_cache['topics'] = data.get('topics', [])
+                    topics_cache['generated_at'] = data.get('generated_at') or ''
+                    topics_cache['show_update_time'] = bool(data.get('show_update_time'))
+                else:  # старый формат — просто список
+                    topics_cache['topics'] = data
                 topics_cache['mtime'] = mtime
             except (OSError, ValueError) as e:
                 print(f"[!] topics.json: {e}")
-                return []
-        return topics_cache['data']
+        return topics_cache['topics']
 
     def render_results(query: str, page: int, results: List[Dict], total: int,
                        error: str = ''):
         total_pages = min(MAX_PAGE, math.ceil(total / per_page)) if total else 0
+        load_topics()  # обновляет кэш тем и метаданных генерации
         return render_template(
             'results.html.j2',
             query=query,
@@ -132,13 +144,16 @@ def create_app() -> Flask:
             per_page=per_page,
             total_pages=total_pages,
             error=error,
-            topics=load_topics(),
+            topics=topics_cache['topics'],
+            generation_date=topics_cache['generated_at'],
+            show_update_time=topics_cache['show_update_time'],
             banner=banner,
             site_title=site.get('title', 'Архив Telegram'),
             site_description=site.get('description', ''),
             footer_text=site.get('footer_text', ''),
             default_theme=config.get('ui', {}).get('theme', 'light'),
             useful_links_title=(config.get('ui', {}) or {}).get('useful_links_title', 'Полезные ссылки'),
+            static_v=static_v,
         )
 
     @app.get('/search')

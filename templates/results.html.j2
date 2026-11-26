@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Поиск — {{ query }}</title>
-<link rel="stylesheet" href="/static/css/style.css">
+<link rel="stylesheet" href="/static/css/style.css?v={{ static_v | default(0) }}">
 </head>
 <body data-theme="{{ default_theme | default('light') }}">
 <header class="header">
@@ -81,7 +81,7 @@
 </div>
 
 <footer class="footer">
-<p class="footer-line">{{ site_title | default('Архив Telegram') }}{% if footer_text %} · {{ footer_text }}{% endif %}</p>
+<p class="footer-line">{{ site_title | default('Архив Telegram') }}{% if show_update_time and generation_date %} · обновлено {{ generation_date }} UTC{% endif %}{% if footer_text %} · {{ footer_text }}{% endif %}</p>
 </footer>
 </body>
 </html>
