@@ -79,5 +79,29 @@ class EmojiAndMarkupTest(unittest.TestCase):
         self.assertEqual(clean_text(text, (normalize('👁 News max'),)), text)
 
 
+class LinkRulesTest(unittest.TestCase):
+    """Ссылку можно ловить и по тексту, и по адресу."""
+
+    LINE = '[**IT MEGA**](https://t.me/it_mega_g)'
+
+    def assert_removed(self, rule):
+        self.assertEqual(clean_text(self.LINE, (normalize(rule),)), '')
+
+    def test_text_of_link(self):
+        self.assert_removed('IT MEGA')
+
+    def test_url_without_scheme(self):
+        self.assert_removed('t.me/it_mega_g')
+
+    def test_url_with_scheme(self):
+        self.assert_removed('https://t.me/it_mega_g')
+
+    def test_channel_slug(self):
+        self.assert_removed('it_mega_g')
+
+    def test_unrelated_text_kept(self):
+        self.assertEqual(clean_text(self.LINE, (normalize('Kubernetes'),)), self.LINE)
+
+
 if __name__ == '__main__':
     unittest.main()

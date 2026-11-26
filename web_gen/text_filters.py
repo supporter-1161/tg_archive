@@ -10,9 +10,10 @@
 
 Сравнение идёт по «очищенной» строке, чтобы эмодзи и разметка не мешали:
 
-* markdown-ссылка ``[текст](url)`` сравнивается по ``текст`` — правило
-  ``🕹КиберТопор — Подписаться`` совпадает со строкой
-  ``🕹[КиберТопор — Подписаться](https://t.me/...)``;
+* markdown-ссылка ``[текст](url)`` сравнивается и по ``текст``, и по адресу:
+  правило ``🕹КиберТопор — Подписаться`` совпадает со строкой
+  ``🕹[КиберТопор — Подписаться](https://t.me/...)``, а ``t.me/it_mega_g`` —
+  со строкой ``[IT MEGA](https://t.me/it_mega_g)``;
 * убираются ``*``, ``_``, обратные кавычки и вариационные селекторы
   (U+FE0E/U+FE0F), поэтому ``🕹️`` в словаре и ``🕹`` в сообщении равны;
 * всё приводится к NFKC и нижнему регистру.
@@ -34,9 +35,14 @@ MARKUP_CHARS = '*_`'
 _cache = {'path': None, 'mtime': None, 'rules': ()}
 
 
-def normalize(text):
-    """Приводит строку к виду, по которому сравниваем правила."""
-    text = MD_LINK_RE.sub(r'\1', text)
+def normalize(text, keep_links=False):
+    """Приводит строку к виду, по которому сравниваем правила.
+
+    keep_links=True оставляет адреса ссылок: тогда правило вида
+    ``t.me/it_mega_g`` ловит строку ``[IT MEGA](https://t.me/it_mega_g)``.
+    """
+    if not keep_links:
+        text = MD_LINK_RE.sub(r'\1', text)
     for ch in MARKUP_CHARS:
         text = text.replace(ch, '')
     # Вариационные селекторы: 🕹️ (U+1F579 U+FE0F) и 🕹 (U+1F579) — один эмодзи.
@@ -91,9 +97,12 @@ def clean_text(text, rules=(), remove_separators=True):
         if remove_separators and SEPARATOR_RE.match(stripped):
             removed += 1
             continue
-        if rules and any(rule in normalize(stripped) for rule in rules):
-            removed += 1
-            continue
+        if rules:
+            plain = normalize(stripped)
+            with_links = normalize(stripped, keep_links=True)
+            if any(rule in plain or rule in with_links for rule in rules):
+                removed += 1
+                continue
         kept.append(line)
 
     if not removed:
