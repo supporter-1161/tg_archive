@@ -1,4 +1,5 @@
 # web_gen/html_generator.py
+import json
 import os
 import sqlite3
 from jinja2 import Environment, FileSystemLoader
@@ -19,6 +20,19 @@ class HTMLGenerator:
         self.topic_template = self.jinja_env.get_template('topic.html.j2')
         self.message_template = self.jinja_env.get_template('message.html.j2')
         self.default_avatar = self._resolve_default_avatar()
+        self.banner = self._resolve_banner()
+        self.message_layout = ((self.config.get('ui') or {}).get('message_layout') or 'side').lower()
+        if self.message_layout not in ('side', 'stacked'):
+            self.message_layout = 'side'
+
+    def _resolve_banner(self):
+        """Баннер в шапке: файл копируется в корень output под именем banner.<ext>."""
+        banner_cfg = (self.config.get('ui') or {}).get('banner') or {}
+        path = banner_cfg.get('path')
+        if not path or not os.path.exists(path):
+            return None
+        ext = os.path.splitext(path)[1].lower() or '.jpg'
+        return {'url': f"/banner{ext}", 'alt': banner_cfg.get('alt', '')}
 
     @staticmethod
     def group_messages(messages):
@@ -51,6 +65,19 @@ class HTMLGenerator:
             return 'media/original/' + raw[len('media/'):]
         return raw
 
+    def _write_topics_json(self, topics_list):
+        """Список тем для страницы поиска (Flask читает его из output)."""
+        data = [{
+            'id': t['id'],
+            'title': t['title'],
+            'icon_emoji': t['icon_emoji'] or '',
+            'message_count': t['message_count'],
+            'url': f"/topics/topic_{t['id']}_page_1.html",
+        } for t in topics_list]
+        path = os.path.join(self.output_dir, 'topics.json')
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=1)
+
     def generate(self):
         print(f"[*] Генерация HTML веб-сайта в '{self.output_dir}'...")
         os.makedirs(self.output_dir, exist_ok=True)
@@ -72,6 +99,7 @@ class HTMLGenerator:
         topics_list = get_topics(conn, self.config.get('ui', {}).get('topics_ranking', 'by_messages'), config=self.config)
         for topic in topics_list:
             topic['first_page_filename'] = f"topics/topic_{topic['id']}_page_1.html"
+        self._write_topics_json(topics_list)
 
         index_context = {
             'site_title': self.config.get('site', {}).get('title', 'Telegram Archive'),
@@ -85,7 +113,9 @@ class HTMLGenerator:
             'total_topics': total_topics,
             'most_active_topic': most_active_topic,
             'topics': topics_list,
-            'config': self.config,
+            'banner': self.banner,
+                    'message_layout': self.message_layout,
+                    'config': self.config,
             'generation_date': generation_date,
             'generation_run_number': new_run_count
         }
@@ -144,6 +174,8 @@ class HTMLGenerator:
                     'messages_order': order,
                     'show_order_label': order == 'newest_first',
                     'default_avatar': self.default_avatar,
+                    'banner': self.banner,
+                    'message_layout': self.message_layout,
                     'config': self.config,
                     'generation_date': generation_date,
                     'generation_run_number': new_run_count
@@ -169,6 +201,8 @@ class HTMLGenerator:
                         'current_topic': topic_info,
                         'message': msg,
                         'default_avatar': self.default_avatar,
+                        'banner': self.banner,
+                        'message_layout': self.message_layout,
                         'config': self.config,
                         'generation_date': generation_date,
                         'generation_run_number': new_run_count

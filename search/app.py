@@ -5,6 +5,7 @@
 Вся пользовательская выдача экранируется, разметка — только наша (autoescape).
 """
 import html
+import json
 import math
 import os
 import re
@@ -91,6 +92,33 @@ def create_app() -> Flask:
     app.jinja_env.autoescape = True
     app.jinja_env.cache = None
     site = config.get('site', {}) or {}
+    output_dir = (os.getenv('SEARCH_OUTPUT_DIR')
+                  or (config.get('storage', {}) or {}).get('output_dir') or 'output')
+
+    banner_cfg = (config.get('ui') or {}).get('banner') or {}
+    banner = None
+    if banner_cfg.get('path') and os.path.exists(banner_cfg['path']):
+        ext = os.path.splitext(banner_cfg['path'])[1].lower() or '.jpg'
+        banner = {'url': f'/banner{ext}', 'alt': banner_cfg.get('alt', '')}
+
+    topics_cache = {'mtime': None, 'data': []}
+
+    def load_topics():
+        """Список тем из topics.json, который пишет генератор (кэш по mtime)."""
+        path = os.path.join(output_dir, 'topics.json')
+        try:
+            mtime = os.path.getmtime(path)
+        except OSError:
+            return []
+        if topics_cache['mtime'] != mtime:
+            try:
+                with open(path, encoding='utf-8') as f:
+                    topics_cache['data'] = json.load(f)
+                topics_cache['mtime'] = mtime
+            except (OSError, ValueError) as e:
+                print(f"[!] topics.json: {e}")
+                return []
+        return topics_cache['data']
 
     def render_results(query: str, page: int, results: List[Dict], total: int,
                        error: str = ''):
@@ -104,10 +132,13 @@ def create_app() -> Flask:
             per_page=per_page,
             total_pages=total_pages,
             error=error,
+            topics=load_topics(),
+            banner=banner,
             site_title=site.get('title', 'Архив Telegram'),
             site_description=site.get('description', ''),
             footer_text=site.get('footer_text', ''),
             default_theme=config.get('ui', {}).get('theme', 'light'),
+            useful_links_title=(config.get('ui', {}) or {}).get('useful_links_title', 'Полезные ссылки'),
         )
 
     @app.get('/search')

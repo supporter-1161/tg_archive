@@ -25,6 +25,10 @@ site:
 ui:
   theme: "auto"          # dark | light | auto (auto = системная тема, без JS)
   useful_links_title: "Полезные ссылки"   # заголовок блока ссылок в сайдбаре
+  message_layout: "side"  # side = текст слева, медиа справа; stacked = медиа под текстом
+  banner:
+    path: ""              # например static/banner.jpg — скопируется в output как banner.<ext>
+    alt: ""
   messages_per_page: 50
   messages_order: "newest_first"   # newest_first | oldest_first
   topics_ranking: "by_messages"    # by_messages | alphabetical

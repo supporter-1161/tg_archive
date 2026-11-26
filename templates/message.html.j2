@@ -9,14 +9,19 @@
 </head>
 <body data-theme="{{ default_theme }}">
 <header class="header">
-    <div class="header-title-desc">
-        <h1>{{ site_title }}</h1>
-        <p>{{ site_description }}</p>
+    {% if banner %}
+    <div class="header-banner"><img src="{{ banner.url }}" alt="{{ banner.alt }}"></div>
+    {% endif %}
+    <div class="header-row">
+        <div class="header-title-desc">
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
+            <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
+            <button type="submit" class="search-button">Найти</button>
+        </form>
     </div>
-    <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
-        <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
-        <button type="submit" class="search-button">Найти</button>
-    </form>
 </header>
 
 {% if ticker_enabled %}
@@ -37,7 +42,7 @@
 <ul class="topic-list">
 {% for topic in topics %}
 <li>
-<a href="/topics/topic_{{ topic.id }}_page_1.html">
+<a class="{% if topic.id == current_topic.id %}active{% endif %}" href="/topics/topic_{{ topic.id }}_page_1.html">
 {{ topic.icon_emoji | default('') }} {{ topic.title }}
 <span class="count">({{ topic.message_count }})</span>
 </a>
@@ -74,7 +79,7 @@
 <p>Ответ на сообщение: <a href="message_{{ message.reply_to_msg_id }}.html">#{{ message.reply_to_msg_id }}</a></p>
 {% endif %}
 </div>
-<div class="message-card">
+<div class="message-card layout-{{ message_layout }}">
 <div class="message-header">
 {% if message.author_avatar_path and message.author_avatar_path.startswith('avatars/') %}
 <img src="../{{ message.author_avatar_path }}" alt="Avatar" class="message-author-icon">
@@ -88,11 +93,17 @@
 </span>
 <span class="message-timestamp">{{ message.timestamp }}</span>
 </div>
+<div class="message-body">
+<div class="message-main">
 {% if message.media_skipped_size_human %}
 <div class="media-skipped">
 Вложение не сохранено — {{ message.media_skipped_size_human }}{% if message.file_extension %} ({{ message.file_extension | upper }}){% endif %}: превышает лимит архива.
 </div>
 {% endif %}
+{% if message.text %}
+<div class="message-text">{{ message.text | safe }}</div>
+{% endif %}
+</div>
 {% if message.media_thumbnail_path or (message.media_original_path and message.media_type != 'photo') %}
 <div class="message-media">
 {% if message.media_type == 'photo' %}
@@ -109,9 +120,7 @@
 <div class="file-size">{% if message.thumb_size_human %}превью {{ message.thumb_size_human }}{% endif %}{% if message.thumb_size_human and message.file_size_human %} · {% endif %}{% if message.file_size_human %}оригинал {{ message.file_size_human }}{% endif %}</div>
 </div>
 {% endif %}
-{% if message.text %}
-<div class="message-text">{{ message.text | safe }}</div>
-{% endif %}
+</div>
 </div>
 <p class="back-link"><a href="../topics/topic_{{ current_topic.id }}_page_1.html#m{{ message.id }}">&larr; Вернуться к теме</a></p>
 </main>

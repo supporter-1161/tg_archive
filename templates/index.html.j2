@@ -4,18 +4,23 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>{{ site_title }}</title>
-<link rel="stylesheet" href="static/css/style.css">
+<link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body data-theme="{{ default_theme }}">
 <header class="header">
-    <div class="header-title-desc">
-        <h1>{{ site_title }}</h1>
-        <p>{{ site_description }}</p>
+    {% if banner %}
+    <div class="header-banner"><img src="{{ banner.url }}" alt="{{ banner.alt }}"></div>
+    {% endif %}
+    <div class="header-row">
+        <div class="header-title-desc">
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
+            <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
+            <button type="submit" class="search-button">Найти</button>
+        </form>
     </div>
-    <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
-        <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
-        <button type="submit" class="search-button">Найти</button>
-    </form>
 </header>
 
 {% if ticker_enabled %}
@@ -28,6 +33,7 @@
 </div>
 </div>
 {% endif %}
+
 <div class="main-content">
 <aside class="sidebar">
 <div class="sidebar-section">
@@ -35,7 +41,7 @@
 <ul class="topic-list">
 {% for topic in topics %}
 <li>
-<a href="{{ topic.first_page_filename }}">
+<a href="/{{ topic.first_page_filename }}">
 {{ topic.icon_emoji | default('') }} {{ topic.title }}
 <span class="count">({{ topic.message_count }})</span>
 </a>

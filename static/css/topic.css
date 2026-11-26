@@ -244,3 +244,104 @@
     padding: 0.4rem;
     font-size: 0.85em;
 }
+
+/* --- Компоновка карточки: текст + медиа --- */
+.message-body {
+    display: block;
+}
+
+.layout-side .message-body {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.layout-side .message-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.layout-side .message-media,
+.layout-side .album-grid {
+    flex: 0 0 260px;
+    max-width: 260px;
+}
+
+.layout-side .album-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.35rem;
+    margin-top: 0;
+}
+
+.layout-side .album-item img {
+    height: 100px;
+}
+
+.layout-side .message-media img {
+    max-height: 180px;
+    width: auto;
+    max-width: 100%;
+}
+
+/* Меньше картинок — больше читаемого текста в кадре */
+.layout-stacked .message-media img {
+    max-height: 220px;
+    width: auto;
+}
+
+.layout-stacked .album-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+}
+
+.layout-stacked .album-item img {
+    height: 110px;
+}
+
+.message-media img {
+    display: block;
+    border-radius: 4px;
+}
+
+/* Видео: не разъезжается на пол-экрана, вертикальные влезают */
+.message-media video {
+    display: block;
+    max-width: 100%;
+    max-height: 320px;
+    background-color: #000;
+    border-radius: 6px;
+}
+
+.layout-side .message-media video {
+    max-height: 180px;
+}
+
+@media (max-width: 760px) {
+    .layout-side .message-body {
+        flex-direction: column;
+    }
+
+    .layout-side .message-media,
+    .layout-side .album-grid {
+        flex: 1 1 auto;
+        max-width: none;
+        width: 100%;
+    }
+}
+
+/* Узкие окна: боковая компоновка превращается в обычную */
+@media (max-width: 1000px) {
+    .layout-side .message-body {
+        flex-direction: column;
+    }
+
+    .layout-side .message-media,
+    .layout-side .album-grid {
+        flex: 1 1 auto;
+        max-width: none;
+        width: 100%;
+    }
+
+    .layout-side .message-media img {
+        max-height: 260px;
+    }
+}

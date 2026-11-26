@@ -8,18 +8,38 @@
 </head>
 <body data-theme="{{ default_theme | default('light') }}">
 <header class="header">
-    <div class="header-title-desc">
-        <h1><a href="/index.html">{{ site_title | default('Архив Telegram') }}</a></h1>
-        <p>{{ site_description | default('') }}</p>
+    {% if banner %}
+    <div class="header-banner"><img src="{{ banner.url }}" alt="{{ banner.alt }}"></div>
+    {% endif %}
+    <div class="header-row">
+        <div class="header-title-desc">
+            <h1><a href="/index.html">{{ site_title | default('Архив Telegram') }}</a></h1>
+            <p>{{ site_description | default('') }}</p>
+        </div>
+        <form class="search-box" action="/search" method="get">
+            <input type="text" name="q" class="search-input" value="{{ query }}" placeholder="Поиск по архиву..." autocomplete="off" required>
+            <button type="submit" class="search-button">Найти</button>
+        </form>
     </div>
 </header>
 
-<form class="search-box" action="/search" method="get">
-    <input type="text" name="q" class="search-input" value="{{ query }}" placeholder="Поиск по архиву..." autocomplete="off" required>
-    <button type="submit" class="search-button">Найти</button>
-</form>
-
-<main class="results">
+<div class="main-content">
+<aside class="sidebar">
+<div class="sidebar-section">
+<h3>Все Темы</h3>
+<ul class="topic-list">
+{% for topic in topics %}
+<li>
+<a href="{{ topic.url }}">
+{{ topic.icon_emoji | default('') }} {{ topic.title }}
+<span class="count">({{ topic.message_count }})</span>
+</a>
+</li>
+{% endfor %}
+</ul>
+</div>
+</aside>
+<main class="content">
 {% if error %}
 <div class="no-results"><p>{{ error }}</p></div>
 {% elif not query %}
@@ -58,6 +78,7 @@
 {% endif %}
 {% endif %}
 </main>
+</div>
 
 <footer class="footer">
 <p>{{ site_title | default('Архив Telegram') }}{% if footer_text %} | {{ footer_text }}{% endif %}</p>

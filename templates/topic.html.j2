@@ -48,14 +48,19 @@
 {% endmacro %}
 
 <header class="header">
-    <div class="header-title-desc">
-        <h1>{{ site_title }}</h1>
-        <p>{{ site_description }}</p>
+    {% if banner %}
+    <div class="header-banner"><img src="{{ banner.url }}" alt="{{ banner.alt }}"></div>
+    {% endif %}
+    <div class="header-row">
+        <div class="header-title-desc">
+            <h1>{{ site_title }}</h1>
+            <p>{{ site_description }}</p>
+        </div>
+        <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
+            <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
+            <button type="submit" class="search-button">Найти</button>
+        </form>
     </div>
-    <form class="search-box" action="{{ config.get('search', {}).get('url', '/search') }}" method="get">
-        <input type="text" name="q" class="search-input" placeholder="Поиск по архиву..." autocomplete="off" required>
-        <button type="submit" class="search-button">Найти</button>
-    </form>
 </header>
 
 {% if ticker_enabled %}
@@ -76,7 +81,7 @@
 <ul class="topic-list">
 {% for topic in topics %}
 <li>
-<a href="{% if topic.id == current_topic.id %}#{% else %}/topics/topic_{{ topic.id }}_page_1.html{% endif %}">
+<a class="{% if topic.id == current_topic.id %}active{% endif %}" href="{% if topic.id == current_topic.id %}#{% else %}/topics/topic_{{ topic.id }}_page_1.html{% endif %}">
 {{ topic.icon_emoji | default('') }} {{ topic.title }}
 <span class="count">({{ topic.message_count }})</span>
 </a>
@@ -134,11 +139,10 @@
 {% for group in message_groups %}
 {% if group.is_album %}
 {% set lead = group.messages[0] %}
-<div class="message-card" id="m{{ lead.id }}">
+<div class="message-card layout-{{ message_layout }}" id="m{{ lead.id }}">
 {{ card_header(lead, config, default_avatar) }}
-<div class="album-grid">
-{% for m in group.messages %}{{ album_media(m) }}{% endfor %}
-</div>
+<div class="message-body">
+<div class="message-main">
 {% for m in group.messages if m.media_skipped_size_human %}
 <div class="media-skipped">Вложение не сохранено — {{ m.media_skipped_size_human }}: превышает лимит архива.</div>
 {% endfor %}
@@ -146,17 +150,26 @@
 <div class="message-text">{{ m.text | safe }}</div>
 {% endfor %}
 </div>
+<div class="album-grid">
+{% for m in group.messages %}{{ album_media(m) }}{% endfor %}
+</div>
+</div>
+</div>
 {% else %}
 {% set message = group.messages[0] %}
-<div class="message-card" id="m{{ message.id }}">
+<div class="message-card layout-{{ message_layout }}" id="m{{ message.id }}">
 {{ card_header(message, config, default_avatar) }}
-
+<div class="message-body">
+<div class="message-main">
 {% if message.media_skipped_size_human %}
 <div class="media-skipped">
 Вложение не сохранено — {{ message.media_skipped_size_human }}{% if message.file_extension %} ({{ message.file_extension | upper }}){% endif %}: превышает лимит архива.
 </div>
 {% endif %}
-
+{% if message.text %}
+<div class="message-text">{{ message.text | safe }}</div>
+{% endif %}
+</div>
 {% if message.media_thumbnail_path or (message.media_original_path and message.media_type != 'photo') %}
 <div class="message-media">
 {% if message.media_type == 'photo' %}
@@ -173,16 +186,16 @@
 <div class="file-size">{% if message.thumb_size_human %}превью {{ message.thumb_size_human }}{% endif %}{% if message.thumb_size_human and message.file_size_human %} · {% endif %}{% if message.file_size_human %}оригинал {{ message.file_size_human }}{% endif %}</div>
 </div>
 {% endif %}
-
-{% if message.text %}
-<div class="message-text">{{ message.text | safe }}</div>
-{% endif %}
+</div>
 </div>
 {% endif %}
 {% endfor %}
 </div>
+</main>
+</div>
 
 {% if total_pages > 1 %}
+<div class="bottom-bar">
 <div class="pagination">
 {% if current_page > 1 %}
 <a href="topic_{{ current_topic.id }}_page_{{ current_page - 1 }}.html">&laquo; Назад</a>
@@ -198,9 +211,8 @@
 <a href="topic_{{ current_topic.id }}_page_{{ current_page + 1 }}.html">Вперёд &raquo;</a>
 {% endif %}
 </div>
-{% endif %}
-</main>
 </div>
+{% endif %}
 
 <footer class="footer">
 <p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ current_topic.total_messages }}</p>
