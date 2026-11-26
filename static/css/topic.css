@@ -180,6 +180,18 @@
     padding: 0.5rem;
     background-color: var(--header-bg);
     border-radius: 4px;
+    /* Длинные строки переносим, а не прокручиваем: код в архиве
+       часто идёт одной простынёй, а горизонтальный скролл ломает карточку. */
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    tab-size: 4;
+}
+
+.message-text pre code {
+    white-space: inherit;
+    overflow-wrap: inherit;
+    word-break: inherit;
 }
 
 /* Длинные имена файлов в ссылках на вложения */
