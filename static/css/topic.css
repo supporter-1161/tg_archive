@@ -414,3 +414,28 @@
 .bottom-bar .pagination {
     text-align: right;
 }
+
+/* --- Видео внутри альбома: ниже фотографий, на всю ширину колонки --- */
+.album-media {
+    min-width: 0;
+}
+
+.album-video {
+    margin-top: 0.5rem;
+}
+
+.album-video video {
+    display: block;
+    width: 100%;
+    max-height: 320px;
+    background-color: #000;
+    border-radius: 6px;
+}
+
+.layout-side .album-video video {
+    max-height: 220px;
+}
+
+.album-video .file-size {
+    margin-top: 0.15rem;
+}

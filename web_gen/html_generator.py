@@ -6,7 +6,7 @@ from jinja2 import Environment, FileSystemLoader
 from datetime import datetime, timezone
 from web_gen.db_queries import (
     get_db_stats, get_topics, get_topic_info,
-    get_messages_for_topic, get_total_message_pages_for_topic
+    get_messages_for_topic, get_total_message_pages_for_topic, get_album_messages
 )
 from database import get_generation_run_count, increment_generation_run_count
 
@@ -208,6 +208,9 @@ class HTMLGenerator:
                         'topics': topics_list,
                         'current_topic': topic_info,
                         'message': msg,
+                        'album_messages': (get_album_messages(conn, topic_id, msg.get('grouped_id'),
+                                                              config=self.config)
+                                           if msg.get('grouped_id') else []),
                         'default_avatar': self.default_avatar,
                         'banner': self.banner,
                         'message_layout': self.message_layout,

@@ -152,8 +152,24 @@
 <div class="message-text">{{ m.text | safe }}</div>
 {% endfor %}
 </div>
+<div class="album-media">
+{% if group.messages | selectattr('media_thumbnail_path') | list %}
 <div class="album-grid">
-{% for m in group.messages %}{{ album_media(m) }}{% endfor %}
+{% for m in group.messages if m.media_type == 'photo' and m.media_thumbnail_path %}{{ album_media(m) }}{% endfor %}
+</div>
+{% endif %}
+{% for m in group.messages if m.media_type == 'video' and m.media_original_path %}
+<div class="album-video">
+<video controls preload="none"><source src="../{{ m.media_original_path }}" type="video/mp4">Видео не поддерживается.</video>
+<div class="file-size">{% if m.file_size_human %}видео {{ m.file_size_human }}{% endif %}</div>
+</div>
+{% endfor %}
+{% for m in group.messages if m.media_type not in ('photo', 'video') and m.media_original_path %}
+<div class="album-item album-file">
+<a href="../{{ m.media_original_path }}" target="_blank" download>Файл: {{ m.media_original_path.split('/')[-1] }}{% if m.file_extension %} ({{ m.file_extension | upper }}){% endif %}</a>
+{% if m.file_size_human %}<figcaption>{{ m.file_size_human }}</figcaption>{% endif %}
+</div>
+{% endfor %}
 </div>
 </div>
 </div>

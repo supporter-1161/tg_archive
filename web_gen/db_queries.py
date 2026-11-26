@@ -98,15 +98,117 @@ def get_topic_info(conn, topic_telegram_id, config=None):
     print(f"[DEBUG] Информация о теме {topic_telegram_id} не найдена в БД")
     return None
 
+MESSAGE_COLUMNS = """
+        m.telegram_id, m.text, m.timestamp, m.media_path, m.media_type, m.file_extension,
+        u.username, u.first_name, u.last_name, u.avatar_path, m.reply_to_msg_id,
+        m.media_skipped_size, m.grouped_id
+"""
+
+
+def _format_message_row(conn, row, config=None):
+    """Превращает строку выборки в словарь для шаблонов."""
+    config = config or {}
+    privacy_config = config.get('ui', {}).get('privacy', {})
+    is_anonymous_mode = privacy_config.get('mode', 'normal') == 'anonymous'
+    anonymous_nickname = privacy_config.get('anonymous_nickname', 'Аноним')
+
+    message_dict = {
+        'id': row[0],
+        'text': row[1],
+        'timestamp': datetime.fromisoformat(row[2]).strftime('%Y-%m-%d %H:%M:%S'),
+        'media_path': row[3],
+        'media_type': row[4],
+        'file_extension': row[5],
+        'author_username': row[6],
+        'author_first_name': row[7],
+        'author_last_name': row[8],
+        'author_avatar_path': row[9],
+        'reply_to_msg_id': row[10],
+        'media_skipped_size': row[11],
+        'media_skipped_size_human': human_readable_size(row[11]) if row[11] else None,
+        'grouped_id': row[12],
+    }
+
+    # --- АНОНИМИЗАЦИЯ ---
+    if is_anonymous_mode:
+        message_dict['author_username'] = None
+        message_dict['author_first_name'] = anonymous_nickname
+        message_dict['author_last_name'] = ''
+
+    # --- ОБРАБОТКА ПУТЕЙ К МЕДИА ---
+    if message_dict['media_path']:
+        full_media_path = message_dict['media_path']
+        if full_media_path.startswith('media/'):
+            rel_path = full_media_path[6:]  # отрезаем 'media/'
+        else:
+            rel_path = full_media_path
+
+        # Оригинал всегда в original/
+        message_dict['media_original_path'] = f"media/original/{rel_path}"
+
+        # Миниатюра — ТОЛЬКО для фото, и с суффиксом .thumb
+        if message_dict['media_type'] == 'photo':
+            dir_part = os.path.dirname(rel_path)
+            file_part = os.path.basename(rel_path)
+            stem = os.path.splitext(file_part)[0]
+            ext = os.path.splitext(file_part)[1]
+            thumb_file = f"{stem}.thumb{ext}"
+            if dir_part:
+                thumb_rel_path = os.path.join(dir_part, thumb_file)
+            else:
+                thumb_rel_path = thumb_file
+            message_dict['media_thumbnail_path'] = f"media/thumbs/{thumb_rel_path}"
+        else:
+            message_dict['media_thumbnail_path'] = None
+
+        file_size_bytes = get_file_size_by_path(conn, full_media_path)
+        message_dict['file_size_bytes'] = file_size_bytes
+        message_dict['file_size_human'] = human_readable_size(file_size_bytes) if file_size_bytes else None
+
+        # Вес превью: файл уже лежит в output (копирование идёт до рендера).
+        thumb_size = None
+        thumb_rel = message_dict.get('media_thumbnail_path')
+        if thumb_rel:
+            output_dir = config.get('storage', {}).get('output_dir', 'output')
+            thumb_abs = os.path.join(output_dir, thumb_rel)
+            if os.path.exists(thumb_abs):
+                thumb_size = os.path.getsize(thumb_abs)
+        message_dict['thumb_size_bytes'] = thumb_size
+        message_dict['thumb_size_human'] = human_readable_size(thumb_size) if thumb_size else None
+    else:
+        message_dict['media_original_path'] = None
+        message_dict['media_thumbnail_path'] = None
+        message_dict['file_size_bytes'] = None
+        message_dict['file_size_human'] = None
+        message_dict['thumb_size_bytes'] = None
+        message_dict['thumb_size_human'] = None
+
+    # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
+    message_dict['text'] = html_converter.convert(message_dict['text'])
+    return message_dict
+
+
+def get_album_messages(conn, topic_telegram_id, grouped_id, config=None):
+    """Все сообщения одного альбома (фото + видео + файлы) по порядку."""
+    if not grouped_id:
+        return []
+    rows = conn.execute(f"""
+        SELECT {MESSAGE_COLUMNS}
+        FROM messages m
+        JOIN users u ON m.user_id = u.telegram_id
+        WHERE m.topic_id = ? AND m.grouped_id = ?
+        ORDER BY m.telegram_id
+    """, (topic_telegram_id, grouped_id)).fetchall()
+    return [_format_message_row(conn, row, config) for row in rows]
+
+
 def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1, per_page=50, config=None):
     """Получает сообщения для конкретной темы с пагинацией и сортировкой."""
     cursor = conn.cursor()
     offset = (page - 1) * per_page
     order_sql = "DESC" if order == "newest_first" else "ASC"
     query = f"""
-        SELECT m.telegram_id, m.text, m.timestamp, m.media_path, m.media_type, m.file_extension,
-               u.username, u.first_name, u.last_name, u.avatar_path, m.reply_to_msg_id,
-               m.media_skipped_size, m.grouped_id
+        SELECT {MESSAGE_COLUMNS}
         FROM messages m
         JOIN users u ON m.user_id = u.telegram_id
         WHERE m.topic_id = ?
@@ -114,88 +216,7 @@ def get_messages_for_topic(conn, topic_telegram_id, order="newest_first", page=1
         LIMIT ? OFFSET ?
     """
     cursor.execute(query, (topic_telegram_id, per_page, offset))
-    rows = cursor.fetchall()
-    messages = []
-    privacy_config = config.get('ui', {}).get('privacy', {})
-    is_anonymous_mode = privacy_config.get('mode', 'normal') == 'anonymous'
-    anonymous_nickname = privacy_config.get('anonymous_nickname', 'Аноним')
-    for row in rows:
-        message_dict = {
-            'id': row[0],
-            'text': row[1],
-            'timestamp': datetime.fromisoformat(row[2]).strftime('%Y-%m-%d %H:%M:%S'),
-            'media_path': row[3],
-            'media_type': row[4],
-            'file_extension': row[5],
-            'author_username': row[6],
-            'author_first_name': row[7],
-            'author_last_name': row[8],
-            'author_avatar_path': row[9],
-            'reply_to_msg_id': row[10],
-            'media_skipped_size': row[11],
-            'media_skipped_size_human': human_readable_size(row[11]) if row[11] else None,
-            'grouped_id': row[12],
-        }
-
-        # --- АНОНИМИЗАЦИЯ ---
-        if is_anonymous_mode:
-            message_dict['author_username'] = None
-            message_dict['author_first_name'] = anonymous_nickname
-            message_dict['author_last_name'] = ''
-
-        # --- ОБРАБОТКА ПУТЕЙ К МЕДИА ---
-        if message_dict['media_path']:
-            full_media_path = message_dict['media_path']
-            if full_media_path.startswith('media/'):
-                rel_path = full_media_path[6:]  # отрезаем 'media/'
-            else:
-                rel_path = full_media_path
-
-            # Оригинал всегда в original/
-            message_dict['media_original_path'] = f"media/original/{rel_path}"
-
-            # Миниатюра — ТОЛЬКО для фото, и с суффиксом .thumb
-            if message_dict['media_type'] == 'photo':
-                dir_part = os.path.dirname(rel_path)
-                file_part = os.path.basename(rel_path)
-                stem = os.path.splitext(file_part)[0]
-                ext = os.path.splitext(file_part)[1]
-                thumb_file = f"{stem}.thumb{ext}"
-                if dir_part:
-                    thumb_rel_path = os.path.join(dir_part, thumb_file)
-                else:
-                    thumb_rel_path = thumb_file
-                message_dict['media_thumbnail_path'] = f"media/thumbs/{thumb_rel_path}"
-            else:
-                message_dict['media_thumbnail_path'] = None
-
-            file_size_bytes = get_file_size_by_path(conn, full_media_path)
-            message_dict['file_size_bytes'] = file_size_bytes
-            message_dict['file_size_human'] = human_readable_size(file_size_bytes) if file_size_bytes else None
-
-            # Вес превью: файл уже лежит в output (копирование идёт до рендера).
-            thumb_size = None
-            thumb_rel = message_dict.get('media_thumbnail_path')
-            if thumb_rel:
-                output_dir = (config or {}).get('storage', {}).get('output_dir', 'output')
-                thumb_abs = os.path.join(output_dir, thumb_rel)
-                if os.path.exists(thumb_abs):
-                    thumb_size = os.path.getsize(thumb_abs)
-            message_dict['thumb_size_bytes'] = thumb_size
-            message_dict['thumb_size_human'] = human_readable_size(thumb_size) if thumb_size else None
-        else:
-            message_dict['media_original_path'] = None
-            message_dict['media_thumbnail_path'] = None
-            message_dict['file_size_bytes'] = None
-            message_dict['file_size_human'] = None
-            message_dict['thumb_size_bytes'] = None
-            message_dict['thumb_size_human'] = None
-
-        # --- ПРЕОБРАЗОВАНИЕ ТЕКСТА В HTML ---
-        html_text = html_converter.convert(message_dict['text'])
-        message_dict['text'] = html_text
-
-        messages.append(message_dict)
+    messages = [_format_message_row(conn, row, config) for row in cursor.fetchall()]
 
     print(f"[DEBUG] Найдено сообщений для темы {topic_telegram_id}, страница {page}: {len(messages)}")
     return messages
