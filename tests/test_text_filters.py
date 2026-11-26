@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from web_gen.text_filters import load_rules, clean_text
+from web_gen.text_filters import load_rules, clean_text, normalize
 
 
 class FilterRulesTest(unittest.TestCase):
@@ -54,6 +54,29 @@ class CleanTextTest(unittest.TestCase):
 
     def test_empty_text(self):
         self.assertEqual(clean_text('', self.RULES), '')
+
+
+class EmojiAndMarkupTest(unittest.TestCase):
+    """Эмодзи и разметка не должны мешать совпадению."""
+
+    def test_rule_with_emoji_matches_link_text(self):
+        text = 'текст\n🕹[КиберТопор — Подписаться](https://t.me/+abc)'
+        rules = (normalize('🕹КиберТопор — Подписаться'),)
+        self.assertEqual(clean_text(text, rules), 'текст')
+
+    def test_emoji_variation_selector_ignored(self):
+        # в сообщении 🕹 (U+1F579), в словаре 🕹️ (U+1F579 U+FE0F)
+        text = '🕹[КиберТопор](https://t.me/x)'
+        rules = (normalize('🕹️КиберТопор'),)
+        self.assertEqual(clean_text(text, rules), '')
+
+    def test_bold_markup_does_not_break_match(self):
+        text = '**Поддержи канал подпиской**'
+        self.assertEqual(clean_text(text, (normalize('Поддержи канал подпиской'),)), '')
+
+    def test_emoji_inside_rule_survives_when_no_match(self):
+        text = 'Обычная новость 👁 про эмодзи'
+        self.assertEqual(clean_text(text, (normalize('👁 News max'),)), text)
 
 
 if __name__ == '__main__':

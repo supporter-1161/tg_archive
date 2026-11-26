@@ -4,22 +4,49 @@
 словарь можно править и перегенерировать статику без повторного синка.
 
 Формат словаря (``filters.txt``): по одному правилу на строку, ``#`` — комментарий.
-Если правило встречается внутри строки сообщения (без учёта регистра), вся строка
-выбрасывается. Строки из одних символов-разделителей (``---``, ``===``, ``___``)
-выбрасываются отдельным встроенным правилом.
+Если правило встречается внутри строки сообщения, вся строка выбрасывается.
+Строки из одних символов-разделителей (``---``, ``===``, ``___``) выбрасываются
+отдельным встроенным правилом.
+
+Сравнение идёт по «очищенной» строке, чтобы эмодзи и разметка не мешали:
+
+* markdown-ссылка ``[текст](url)`` сравнивается по ``текст`` — правило
+  ``🕹КиберТопор — Подписаться`` совпадает со строкой
+  ``🕹[КиберТопор — Подписаться](https://t.me/...)``;
+* убираются ``*``, ``_``, обратные кавычки и вариационные селекторы
+  (U+FE0E/U+FE0F), поэтому ``🕹️`` в словаре и ``🕹`` в сообщении равны;
+* всё приводится к NFKC и нижнему регистру.
 """
 
 import os
 import re
+import unicodedata
 
 # Строка целиком состоит из символов-разделителей: ----, =====, ***, ___ ...
 SEPARATOR_RE = re.compile(r'^[\s\-=_*~—–.·•#]{3,}$')
 
+# [текст](url) -> текст ; [текст] -> текст
+MD_LINK_RE = re.compile(r'\[([^\]]*)\](?:\([^)]*\))?')
+
+# Символы разметки, которые не должны влиять на совпадение.
+MARKUP_CHARS = '*_`'
+
 _cache = {'path': None, 'mtime': None, 'rules': ()}
 
 
+def normalize(text):
+    """Приводит строку к виду, по которому сравниваем правила."""
+    text = MD_LINK_RE.sub(r'\1', text)
+    for ch in MARKUP_CHARS:
+        text = text.replace(ch, '')
+    # Вариационные селекторы: 🕹️ (U+1F579 U+FE0F) и 🕹 (U+1F579) — один эмодзи.
+    text = text.replace('\ufe0e', '').replace('\ufe0f', '')
+    text = unicodedata.normalize('NFKC', text)
+    return text.casefold()
+
+
 def load_rules(path):
-    """Читает словарь и возвращает кортеж правил в нижнем регистре (кэш по mtime)."""
+    """Читает словарь и возвращает кортеж нормализованных правил (кэш по mtime)."""
     if not path:
         return ()
     try:
@@ -37,7 +64,9 @@ def load_rules(path):
                 line = raw.strip()
                 if not line or line.startswith('#'):
                     continue
-                rules.append(line.casefold())
+                rule = normalize(line)
+                if rule:
+                    rules.append(rule)
     except OSError as e:
         print(f"[!] Словарь фильтров {path}: {e}")
 
@@ -62,8 +91,7 @@ def clean_text(text, rules=(), remove_separators=True):
         if remove_separators and SEPARATOR_RE.match(stripped):
             removed += 1
             continue
-        folded = stripped.casefold()
-        if any(rule in folded for rule in rules):
+        if rules and any(rule in normalize(stripped) for rule in rules):
             removed += 1
             continue
         kept.append(line)
