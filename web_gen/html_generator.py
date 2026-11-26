@@ -99,6 +99,10 @@ class HTMLGenerator:
         generation_date = generation_time.strftime('%Y-%m-%d %H:%M')
         new_run_count = increment_generation_run_count(conn)
         show_update_time = (self.config.get('ui') or {}).get('show_update_time', True)
+        site_cfg = self.config.get('site', {}) or {}
+        software = ' '.join(str(x).strip() for x in (
+            site_cfg.get('software_name', ''), site_cfg.get('software_version', '')
+        ) if str(x).strip())
 
         # --- 1. Главная страница ---
         total_messages, total_topics, most_active_topic = get_db_stats(conn)
@@ -111,6 +115,7 @@ class HTMLGenerator:
             'site_title': self.config.get('site', {}).get('title', 'Telegram Archive'),
             'site_description': self.config.get('site', {}).get('description', ''),
             'footer_text': self.config.get('site', {}).get('footer_text', ''),
+            'software': software,
             'default_theme': self.config.get('ui', {}).get('theme', 'light'),
             'ticker_enabled': self.config.get('ticker', {}).get('enabled', False),
             'ticker_texts': self.config.get('ticker', {}).get('texts', []),
@@ -167,6 +172,7 @@ class HTMLGenerator:
                     'site_title': self.config.get('site', {}).get('title', 'Telegram Archive'),
                     'site_description': self.config.get('site', {}).get('description', ''),
                     'footer_text': self.config.get('site', {}).get('footer_text', ''),
+                    'software': software,
                     'default_theme': self.config.get('ui', {}).get('theme', 'light'),
                     'ticker_enabled': self.config.get('ticker', {}).get('enabled', False),
                     'ticker_texts': self.config.get('ticker', {}).get('texts', []),
@@ -201,6 +207,7 @@ class HTMLGenerator:
                         'site_title': self.config.get('site', {}).get('title', 'Telegram Archive'),
                         'site_description': self.config.get('site', {}).get('description', ''),
                         'footer_text': self.config.get('site', {}).get('footer_text', ''),
+                    'software': software,
                         'default_theme': self.config.get('ui', {}).get('theme', 'light'),
                         'ticker_enabled': self.config.get('ticker', {}).get('enabled', False),
                         'ticker_texts': self.config.get('ticker', {}).get('texts', []),

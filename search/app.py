@@ -109,6 +109,11 @@ def create_app() -> Flask:
     except OSError:
         static_v = 0
 
+    # Подпись «софт + версия» для подвала — целиком из конфига.
+    software = ' '.join(str(x).strip() for x in (
+        site.get('software_name', ''), site.get('software_version', '')
+    ) if str(x).strip())
+
     def load_topics():
         """Список тем из topics.json, который пишет генератор (кэш по mtime)."""
         path = os.path.join(output_dir, 'topics.json')
@@ -151,6 +156,7 @@ def create_app() -> Flask:
             site_title=site.get('title', 'Архив Telegram'),
             site_description=site.get('description', ''),
             footer_text=site.get('footer_text', ''),
+            software=software,
             default_theme=config.get('ui', {}).get('theme', 'light'),
             useful_links_title=(config.get('ui', {}) or {}).get('useful_links_title', 'Полезные ссылки'),
             static_v=static_v,

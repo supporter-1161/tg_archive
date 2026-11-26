@@ -233,7 +233,7 @@
 {% endif %}
 
 <footer class="footer">
-<p class="footer-line">{{ site_title }}{% if show_update_time %} · обновлено {{ generation_date }} UTC{% endif %} · сообщений: {{ current_topic.total_messages }}{% if footer_text %} · {{ footer_text }}{% endif %}</p>
+<p class="footer-line">{{ site_title }}{% if show_update_time %} · обновлено {{ generation_date }} UTC{% endif %} · сообщений: {{ current_topic.total_messages }}{% if footer_text %} · {{ footer_text }}{% endif %}{% if software %} · {{ software }}{% endif %}</p>
 </footer>
 </body>
 </html>

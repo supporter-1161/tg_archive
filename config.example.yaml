@@ -21,6 +21,9 @@ site:
   description: "Текст, ссылки и файлы без телеграма"
   welcome_text: "Добро пожаловать в архив.\nЧитайте, ищите, качайте."
   footer_text: "Архив собран автоматически"
+  # Подпись движка в подвале: "tg-archive 1.0.0". Пустое имя — не выводится.
+  software_name: "tg-archive"
+  software_version: "1.0.0"
 
 ui:
   theme: "auto"          # dark | light | auto (auto = системная тема, без JS)
