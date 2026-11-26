@@ -117,3 +117,7 @@ docker compose up -d search web         # gunicorn + nginx
 
 Таблицы: `topics`, `messages` (`reply_to_msg_id` — id сообщения, на которое ответ;
 `topic_id` — id топика), `users`, `media_files`, `generation_stats`.
+
+Подвал — одна строка: название, время генерации и число сообщений. Время выводится
+в UTC и отключается через `ui.show_update_time`; слоган (`site.footer_text`)
+показывается только если задан.

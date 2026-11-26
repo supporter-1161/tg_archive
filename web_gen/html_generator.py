@@ -3,7 +3,7 @@ import json
 import os
 import sqlite3
 from jinja2 import Environment, FileSystemLoader
-from datetime import datetime
+from datetime import datetime, timezone
 from web_gen.db_queries import (
     get_db_stats, get_topics, get_topic_info,
     get_messages_for_topic, get_total_message_pages_for_topic
@@ -90,9 +90,11 @@ class HTMLGenerator:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
 
-        generation_time = datetime.now()
-        generation_date = generation_time.strftime('%Y-%m-%d %H:%M:%S')
+        # Время обновления — в UTC: местное время сдаёт часовой пояс владельца.
+        generation_time = datetime.now(timezone.utc)
+        generation_date = generation_time.strftime('%Y-%m-%d %H:%M')
         new_run_count = increment_generation_run_count(conn)
+        show_update_time = (self.config.get('ui') or {}).get('show_update_time', True)
 
         # --- 1. Главная страница ---
         total_messages, total_topics, most_active_topic = get_db_stats(conn)
@@ -114,8 +116,9 @@ class HTMLGenerator:
             'most_active_topic': most_active_topic,
             'topics': topics_list,
             'banner': self.banner,
-                    'message_layout': self.message_layout,
-                    'config': self.config,
+            'message_layout': self.message_layout,
+            'show_update_time': show_update_time,
+            'config': self.config,
             'generation_date': generation_date,
             'generation_run_number': new_run_count
         }
@@ -176,6 +179,7 @@ class HTMLGenerator:
                     'default_avatar': self.default_avatar,
                     'banner': self.banner,
                     'message_layout': self.message_layout,
+                    'show_update_time': show_update_time,
                     'config': self.config,
                     'generation_date': generation_date,
                     'generation_run_number': new_run_count
@@ -203,6 +207,7 @@ class HTMLGenerator:
                         'default_avatar': self.default_avatar,
                         'banner': self.banner,
                         'message_layout': self.message_layout,
+                        'show_update_time': show_update_time,
                         'config': self.config,
                         'generation_date': generation_date,
                         'generation_run_number': new_run_count

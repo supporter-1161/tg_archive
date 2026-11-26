@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Сообщение #{{ message.id }} - {{ site_title }}</title>
-<link rel="stylesheet" href="../static/css/style.css">
-<link rel="stylesheet" href="../static/css/topic.css">
+<link rel="stylesheet" href="../static/css/style.css?v={{ generation_run_number }}">
+<link rel="stylesheet" href="../static/css/topic.css?v={{ generation_run_number }}">
 </head>
 <body data-theme="{{ default_theme }}">
 <header class="header">
@@ -126,8 +126,7 @@
 </main>
 </div>
 <footer class="footer">
-<p>{{ site_title }} | Обновлено: {{ generation_date }} | Запуск #{{ generation_run_number }} | Сообщений: {{ current_topic.total_messages }}</p>
-{% if footer_text %}<p>{{ footer_text }}</p>{% endif %}
+<p class="footer-line">{{ site_title }}{% if show_update_time %} · обновлено {{ generation_date }} UTC{% endif %} · сообщений: {{ current_topic.total_messages }}{% if footer_text %} · {{ footer_text }}{% endif %}</p>
 </footer>
 </body>
 </html>

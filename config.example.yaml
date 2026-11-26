@@ -25,6 +25,7 @@ site:
 ui:
   theme: "auto"          # dark | light | auto (auto = системная тема, без JS)
   useful_links_title: "Полезные ссылки"   # заголовок блока ссылок в сайдбаре
+  show_update_time: true  # показывать время генерации (UTC) в подвале
   message_layout: "side"  # side = текст слева, медиа справа; stacked = медиа под текстом
   banner:
     path: ""              # например static/banner.jpg — скопируется в output как banner.<ext>

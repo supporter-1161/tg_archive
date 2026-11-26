@@ -345,3 +345,72 @@
         max-height: 260px;
     }
 }
+
+/* --- Строка инструментов темы: «Показ» и верхняя пагинация в одну линию --- */
+.topic-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+
+.topic-toolbar .order-label {
+    margin: 0;
+}
+
+.topic-toolbar .pagination {
+    margin: 0;
+}
+
+.info-panel {
+    margin-bottom: 0.5rem;
+    padding: 0.35rem 0.5rem;
+}
+
+.breadcrumb {
+    margin-bottom: 0.25rem;
+}
+
+.topic-header {
+    margin-bottom: 0.25rem;
+}
+
+/* В колоночной компоновке дети должны тянуться по ширине контейнера,
+   иначе длинный код/имена файлов растягивают страницу */
+@media (max-width: 1000px) {
+    .layout-side .message-body {
+        align-items: stretch;
+    }
+}
+
+.message-main,
+.message-text,
+.message-body {
+    min-width: 0;
+    max-width: 100%;
+}
+
+/* Компактная пагинация, чтобы не съедала вертикаль */
+.pagination a,
+.pagination span {
+    padding: 0.15rem 0.4rem;
+    margin: 0 0.08rem;
+    font-size: 0.85rem;
+    line-height: 1.4;
+}
+
+.pagination {
+    margin-top: 0.5rem;
+}
+
+/* Обе пагинации выравниваем по правому краю контента — так они симметричны */
+.topic-toolbar .pagination {
+    margin-left: auto;
+    text-align: right;
+}
+
+.bottom-bar .pagination {
+    text-align: right;
+}
